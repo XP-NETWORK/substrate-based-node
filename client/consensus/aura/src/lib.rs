@@ -110,6 +110,26 @@ impl<N> Default for CompatibilityMode<N> {
 	}
 }
 
+/// Returns the configuration value to put in
+/// [`sc_network::config::FullNetworkConfiguration`].
+/// For standard protocol name see [`crate::protocol_standard_name`].
+pub fn aura_peer_notification_config(
+	protocol_name: ProtocolName
+) -> sc_network::config::NonDefaultSetConfig {
+	sc_network::config::NonDefaultSetConfig {
+		notifications_protocol: protocol_name,
+		fallback_names: Vec::new(),
+		max_notification_size: 1024 * 1024,
+		handshake: None,
+		set_config: sc_network::config::SetConfig {
+			in_peers: 0,
+			out_peers: 0,
+			reserved_nodes: Vec::new(),
+			non_reserved_mode: sc_network::config::NonReservedPeerMode::Deny,
+		},
+	}
+}
+
 /// Parameters of [`start_aura`].
 pub struct StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, N> {
 	/// The duration of a slot.
