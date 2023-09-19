@@ -52,6 +52,7 @@ use sp_core::crypto::{Pair, Public};
 use sp_inherents::CreateInherentDataProviders;
 use sp_keystore::KeystorePtr;
 use sp_runtime::traits::{Block as BlockT, Header, Member, NumberFor};
+use sc_network::types::ProtocolName;
 
 mod import_queue;
 pub mod standalone;
