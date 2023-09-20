@@ -92,7 +92,7 @@ pub mod grandpa_protocol_name {
 			Some(fork_id) => format!("/{}/{}", array_bytes::bytes2hex("", genesis_hash), fork_id),
 			None => format!("/{}", array_bytes::bytes2hex("", genesis_hash)),
 		};
-		format!("{}{}", chain_prefix, NAM E).into()
+		format!("{}{}", chain_prefix, NAME).into()
 	}
 }
 
