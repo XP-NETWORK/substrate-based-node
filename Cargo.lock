@@ -9276,12 +9276,14 @@ dependencies = [
 name = "sc-consensus-aura"
 version = "0.10.0-dev"
 dependencies = [
+ "array-bytes",
  "async-trait",
  "futures",
  "log",
  "parity-scale-codec",
  "parking_lot 0.12.1",
  "sc-block-builder",
+ "sc-chain-spec",
  "sc-client-api",
  "sc-consensus",
  "sc-consensus-slots",
