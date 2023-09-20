@@ -245,7 +245,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
-		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _>(
+		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _,_>(
 			StartAuraParams {
 				slot_duration,
 				client,
@@ -272,6 +272,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 				max_block_proposal_slot_portion: None,
 				telemetry: telemetry.as_ref().map(|x| x.handle()),
 				compatibility_mode: Default::default(),
+				network:network.clone()
 			},
 		)?;
 

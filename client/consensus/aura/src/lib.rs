@@ -124,8 +124,6 @@ impl<N> Default for CompatibilityMode<N> {
 	}
 }
 
-
-
 /// Name of the notifications protocol used by Modified AURA.
 ///
 /// Must be registered towards the networking in order for AURA to properly function.
@@ -162,7 +160,7 @@ pub fn aura_peer_notification_config(
 }
 
 /// Parameters of [`start_aura`].
-pub struct StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, N> {
+pub struct StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
 	/// The duration of a slot.
 	pub slot_duration: SlotDuration,
 	/// The client to interact with the chain.
@@ -200,10 +198,14 @@ pub struct StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, N> {
 	///
 	/// If in doubt, use `Default::default()`.
 	pub compatibility_mode: CompatibilityMode<N>,
+	/// The Network instance.
+	///
+	/// This network will be used for notifications in our modified AURA.
+	pub network: AN,
 }
 
 /// Start the aura worker. The returned future should be run in a futures executor.
-pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error>(StartAuraParams {
+pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(StartAuraParams {
 	slot_duration,
 	client,
 	select_chain,
@@ -219,7 +221,8 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error>(StartAuraParams {
 	max_block_proposal_slot_portion,
 	telemetry,
 	compatibility_mode,
-}: StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, NumberFor<B>>)
+	network,
+}: StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, NumberFor<B>, AN>)
 	-> Result<impl Future<Output = ()>, ConsensusError>
 	where
 		P: Pair + Send + Sync,
@@ -239,7 +242,7 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error>(StartAuraParams {
 		BS: BackoffAuthoringBlocksStrategy<NumberFor<B>> + Send + Sync + 'static,
 		Error: std::error::Error + Send + From<ConsensusError> + 'static
 {
-	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _>(BuildAuraWorkerParams {
+	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _,_>(BuildAuraWorkerParams {
 		client,
 		block_import,
 		proposer_factory,
@@ -252,6 +255,7 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error>(StartAuraParams {
 		block_proposal_slot_portion,
 		max_block_proposal_slot_portion,
 		compatibility_mode,
+		network,
 	});
 
 	Ok(
@@ -266,7 +270,7 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error>(StartAuraParams {
 }
 
 /// Parameters of [`build_aura_worker`].
-pub struct BuildAuraWorkerParams<C, I, PF, SO, L, BS, N> {
+pub struct BuildAuraWorkerParams<C, I, PF, SO, L, BS, N, AN> {
 	/// The client to interact with the chain.
 	pub client: Arc<C>,
 	/// The block import.
@@ -298,12 +302,16 @@ pub struct BuildAuraWorkerParams<C, I, PF, SO, L, BS, N> {
 	///
 	/// If in doubt, use `Default::default()`.
 	pub compatibility_mode: CompatibilityMode<N>,
+	/// The Network instance.
+	///
+	/// This network will be used for notifications in our modified AURA.
+	network: AN,
 }
 
 /// Build the aura worker.
 ///
 /// The caller is responsible for running this worker, otherwise it will do nothing.
-pub fn build_aura_worker<P, B, C, PF, I, SO, L, BS, Error>(BuildAuraWorkerParams {
+pub fn build_aura_worker<P, B, C, PF, I, SO, L, BS, Error, AN>(BuildAuraWorkerParams {
 	client,
 	block_import,
 	proposer_factory,
@@ -316,7 +324,8 @@ pub fn build_aura_worker<P, B, C, PF, I, SO, L, BS, Error>(BuildAuraWorkerParams
 	telemetry,
 	force_authoring,
 	compatibility_mode,
-}: BuildAuraWorkerParams<C, I, PF, SO, L, BS, NumberFor<B>>)
+	network,
+}: BuildAuraWorkerParams<C, I, PF, SO, L, BS, NumberFor<B>,AN>)
 	-> impl sc_consensus_slots::SimpleSlotWorker<
 		B,
 		Proposer = PF::Proposer,
@@ -809,6 +818,7 @@ mod tests {
 					max_block_proposal_slot_portion: None,
 					telemetry: None,
 					compatibility_mode: CompatibilityMode::None,
+					network: net,
 				}).expect("Starts aura")
 			);
 		}
