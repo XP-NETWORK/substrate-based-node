@@ -61,6 +61,8 @@ use sc_chain_spec::ChainSpec;
 
 mod import_queue;
 pub mod standalone;
+// pub mod frost;
+use crate::frost::frost::start_frost_worker;
 
 pub use crate::standalone::{ find_pre_digest, slot_duration };
 pub use import_queue::{
@@ -242,7 +244,7 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(StartAuraParam
 		BS: BackoffAuthoringBlocksStrategy<NumberFor<B>> + Send + Sync + 'static,
 		Error: std::error::Error + Send + From<ConsensusError> + 'static
 {
-	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _,_>(BuildAuraWorkerParams {
+	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _, _>(BuildAuraWorkerParams {
 		client,
 		block_import,
 		proposer_factory,
@@ -257,7 +259,7 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(StartAuraParam
 		compatibility_mode,
 		network,
 	});
-
+	start_frost_worker(network);
 	Ok(
 		sc_consensus_slots::start_slot_worker(
 			slot_duration,
@@ -325,7 +327,7 @@ pub fn build_aura_worker<P, B, C, PF, I, SO, L, BS, Error, AN>(BuildAuraWorkerPa
 	force_authoring,
 	compatibility_mode,
 	network,
-}: BuildAuraWorkerParams<C, I, PF, SO, L, BS, NumberFor<B>,AN>)
+}: BuildAuraWorkerParams<C, I, PF, SO, L, BS, NumberFor<B>, AN>)
 	-> impl sc_consensus_slots::SimpleSlotWorker<
 		B,
 		Proposer = PF::Proposer,
