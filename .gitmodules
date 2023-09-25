@@ -1,0 +1,3 @@
+[submodule "client/consensus/Frost-projective"]
+	path = client/consensus/Frost-projective
+	url = https://github.com/NoorahSmith/Frost-projective/
