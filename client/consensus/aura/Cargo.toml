@@ -16,12 +16,12 @@ targets = ["x86_64-unknown-linux-gnu"]
 async-trait = "0.1.57"
 array-bytes = "6.1"
 codec = { package = "parity-scale-codec", version = "3.6.1" }
-futures = "0.3.21"
 log = "0.4.17"
 thiserror = "1.0"
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.10.0-dev", path = "../../../utils/prometheus" }
 sc-block-builder = { version = "0.10.0-dev", path = "../../block-builder" }
 sc-client-api = { version = "4.0.0-dev", path = "../../api" }
+sc-service = { path = "../../service/" }
 sc-consensus = { version = "0.10.0-dev", path = "../../../client/consensus/common" }
 sc-network = { version = "0.10.0-dev", path = "../../network" }
 sc-chain-spec = { version = "4.0.0-dev", path = "../../../client/chain-spec" }
@@ -38,6 +38,11 @@ sp-core = { version = "21.0.0", path = "../../../primitives/core" }
 sp-inherents = { version = "4.0.0-dev", path = "../../../primitives/inherents" }
 sp-keystore = { version = "0.27.0", path = "../../../primitives/keystore" }
 sp-runtime = { version = "24.0.0", path = "../../../primitives/runtime" }
+subxt =  { version = "0.31.0" }
+subxt-signer = { version = "0.31.0", features = ["subxt"]}
+tokio = { version = "1.15.0", features = ["full"] }
+secp256k1 = "0.27.0"
+futures = "0.3.28"
 
 [dev-dependencies]
 parking_lot = "0.12.1"
