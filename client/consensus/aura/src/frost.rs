@@ -35,7 +35,9 @@ pub mod frost {
 	/// Start a seperate worker for continously check for any cluster without group key
 	/// If theres a compelete cluster i.e a cluster has 11 validators and group key is not generated for i
 	/// then start the group key generation.
-	pub fn start_frost_worker(config: Configuration) -> Result<(), FrostWorkerError> {
+	pub fn start_frost_worker<'a>(config: &'a Configuration) -> Result<(), FrostWorkerError> {
+		let this_validator_keypair = create_substrate_signer(config)?;
+
 		let _ = tokio::task::spawn_blocking(|| async move {
 			// We listen to the event that is emitted by the call that is called below
 			// The emitted data if successfull will contain the cluster ids for which there
@@ -48,7 +50,7 @@ pub mod frost {
 				let call = bridge::tx().clusters().emit_ids_of_clusters_without_group_keys();
 
 				// ignore err if there is any and try again after sometime
-				let _ = sign_and_send_substrate_tx(call, &config).await;
+				let _ = sign_and_send_substrate_tx(call, &this_validator_keypair).await;
 				let _ = tokio::time::sleep(Duration::from_secs(30));
 			}
 		});
@@ -127,15 +129,15 @@ pub mod frost {
 
 	async fn sign_and_send_substrate_tx<T: EncodeAsFields>(
 		call: Payload<T>,
-		config: &Configuration,
+		this_validator_keypair: &Keypair,
 	) -> Result<(), FrostWorkerError> {
-		let this_validator_keypair = create_substrate_signer(config)?;
+		// let this_validator_keypair = create_substrate_signer(config)?;
 
 		let api = create_client().await.or(Err(FrostWorkerError::FailedToCreateSubstrateClient))?;
 
 		let _ = api
 			.tx()
-			.sign_and_submit_then_watch_default(&call, &this_validator_keypair)
+			.sign_and_submit_then_watch_default(&call, this_validator_keypair)
 			.await
 			.or(Err(FrostWorkerError::FailedToSubmitTransaction))?
 			.wait_for_finalized_success()

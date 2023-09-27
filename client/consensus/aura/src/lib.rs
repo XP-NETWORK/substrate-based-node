@@ -151,7 +151,7 @@ pub fn aura_peer_notification_config(
 }
 
 /// Parameters of [`start_aura`].
-pub struct StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
+pub struct StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
 	/// The duration of a slot.
 	pub slot_duration: SlotDuration,
 	/// The client to interact with the chain.
@@ -195,7 +195,7 @@ pub struct StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
 	pub network: AN,
 
 	///
-	pub config: Configuration,
+	pub config: &'a Configuration,
 }
 
 /// Start the aura worker. The returned future should be run in a futures executor.
