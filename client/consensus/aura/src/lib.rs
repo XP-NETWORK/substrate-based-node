@@ -54,7 +54,7 @@ use sp_runtime::traits::{Block as BlockT, Header, Member, NumberFor};
 // New Types required by the modified AURA
 use sc_chain_spec::ChainSpec;
 use sc_network::types::ProtocolName;
-use sc_service::Configuration;
+use sc_service::{Configuration, TaskManager};
 pub mod frost;
 mod import_queue;
 pub mod standalone;
@@ -196,10 +196,12 @@ pub struct StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
 
 	///
 	pub config: &'a Configuration,
+	///
+	pub task_manager: &'a mut TaskManager,
 }
 
 /// Start the aura worker. The returned future should be run in a futures executor.
-pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(
+pub fn start_aura<'a, P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(
 	StartAuraParams {
 		config,
 		slot_duration,
@@ -218,7 +220,8 @@ pub fn start_aura<P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(
 		telemetry,
 		compatibility_mode,
 		network,
-	}: StartAuraParams<C, SC, I, PF, SO, L, CIDP, BS, NumberFor<B>, AN>,
+		task_manager,
+	}: StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, NumberFor<B>, AN>,
 ) -> Result<impl Future<Output = ()>, ConsensusError>
 where
 	P: Pair + Send + Sync,
@@ -239,7 +242,7 @@ where
 	Error: std::error::Error + Send + From<ConsensusError> + 'static,
 {
 	// keystore
-	let _ = start_frost_worker(config);
+	let _ = start_frost_worker(config, task_manager);
 
 	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _, _>(BuildAuraWorkerParams {
 		client,
@@ -256,14 +259,14 @@ where
 		compatibility_mode,
 		network,
 	});
-
-	Ok(sc_consensus_slots::start_slot_worker(
+	let aura = sc_consensus_slots::start_slot_worker(
 		slot_duration,
 		select_chain,
 		SimpleSlotWorkerToSlotWorker(worker),
 		sync_oracle,
 		create_inherent_data_providers,
-	))
+	);
+	Ok(aura)
 }
 
 /// Parameters of [`build_aura_worker`].
@@ -322,7 +325,7 @@ pub fn build_aura_worker<P, B, C, PF, I, SO, L, BS, Error, AN>(
 		telemetry,
 		force_authoring,
 		compatibility_mode,
-		network,
+		network: _network,
 	}: BuildAuraWorkerParams<C, I, PF, SO, L, BS, NumberFor<B>, AN>,
 ) -> impl sc_consensus_slots::SimpleSlotWorker<
 	B,
@@ -612,12 +615,11 @@ mod tests {
 	use super::*;
 	use parking_lot::Mutex;
 	use sc_block_builder::BlockBuilderProvider;
-	use sc_client_api::BlockchainEvents;
 	use sc_consensus::BoxJustificationImport;
 	use sc_consensus_slots::{BackoffAuthoringOnFinalizedHeadLagging, SimpleSlotWorker};
 	use sc_keystore::LocalKeystore;
 	use sc_network_test::{Block as TestBlock, *};
-	use sp_application_crypto::{key_types::AURA, AppCrypto};
+	use sp_application_crypto::AppCrypto;
 	use sp_consensus::{DisableProofRecording, NoNetwork as DummyOracle, Proposal};
 	use sp_consensus_aura::sr25519::AuthorityPair;
 	use sp_inherents::InherentData;
@@ -628,10 +630,7 @@ mod tests {
 		Digest,
 	};
 	use sp_timestamp::Timestamp;
-	use std::{
-		task::Poll,
-		time::{Duration, Instant},
-	};
+	use std::time::{Duration, Instant};
 	use substrate_test_runtime_client::{
 		runtime::{Header, H256},
 		TestClient,

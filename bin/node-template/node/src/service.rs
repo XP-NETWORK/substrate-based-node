@@ -1,6 +1,6 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use futures::FutureExt;
+use futures::{FutureExt, TryFutureExt};
 use node_template_runtime::{self, opaque::Block, RuntimeApi};
 use sc_client_api::{Backend, BlockBackend};
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
@@ -233,6 +233,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _, _, _, _, _, _>(
 			StartAuraParams {
 				config: &config,
+				task_manager: &mut task_manager,
 				slot_duration,
 				client: client.clone(),
 				select_chain,

@@ -1,18 +1,14 @@
 /// Module contains functions related to frost
 pub mod frost {
 	use std::{
-		fs::{self, File},
+		fs::{self},
+		thread::{self, sleep},
 		time::Duration,
 	};
 
 	use futures::StreamExt;
-	use sc_network::config::FullNetworkConfiguration;
-	use sc_service::Configuration;
-	use sp_core::sr25519::Pair;
-	use subxt::{
-		client::OnlineClientT, ext::scale_encode::EncodeAsFields, tx::Payload, OnlineClient,
-		PolkadotConfig,
-	};
+	use sc_service::{Configuration, TaskManager};
+	use subxt::{ext::scale_encode::EncodeAsFields, tx::Payload, OnlineClient, PolkadotConfig};
 	use subxt_signer::{bip39::Mnemonic, sr25519::Keypair};
 
 	/// The error enum for Frost Worker
@@ -29,21 +25,53 @@ pub mod frost {
 		FailedToReadMnemonic,
 	}
 
+	// task_manager.spawn_handle().spawn_blocking("test", None, async move {
 	#[subxt::subxt(runtime_metadata_path = "./src/metadata.scale")]
 	pub mod bridge {}
 
 	/// Start a seperate worker for continously check for any cluster without group key
 	/// If theres a compelete cluster i.e a cluster has 11 validators and group key is not generated for i
 	/// then start the group key generation.
-	pub fn start_frost_worker<'a>(config: &'a Configuration) -> Result<(), FrostWorkerError> {
+	pub fn start_frost_worker<'a>(
+		config: &'a Configuration,
+		task_manager: &'a mut TaskManager,
+	) -> Result<(), FrostWorkerError> {
+		log::info!("info start_frost_worker");
+		// log::log!("log start_frost_worker");
+		log::warn!("warn log start_frost_worker");
+		log::error!("error log start_frost_worker");
+		log::trace!("trace log start_frost_worker");
+
 		let this_validator_keypair = create_substrate_signer(config)?;
 
-		let _ = tokio::task::spawn_blocking(|| async move {
-			// We listen to the event that is emitted by the call that is called below
-			// The emitted data if successfull will contain the cluster ids for which there
-			// is no group id and the length is 11 (i.e cluster is complete)
-			let _ = listen_to_event().await;
-		});
+		// let t = task_manager.spawn_handle().spawn_blocking("test", None, async move {
+		// 	log::info!("Inside first task");
+		// 	log::warn!("Inside first task");
+		// 	log::error!("Inside first task");
+		// 	log::trace!("Inside first task");
+		// 	// We listen to the event that is emitted by the call that is called below
+		// 	// The emitted data if successfull will contain the cluster ids for which there
+		// 	// is no group id and the length is 11 (i.e cluster is complete)
+		// 	let _ = listen_to_event().await;
+		// 	// sleep(Duration::from_secs(60));
+		// 	loop {}
+		// 	// return b"return";
+		// });
+
+		// let handle = thread::spawn(|| {
+		// 	log::info!("Inside first task");
+		// 	log::warn!("Inside first task");
+		// 	log::error!("Inside first task");
+		// 	log::trace!("Inside first task");
+		// We listen to the event that is emitted by the call that is called below
+		// The emitted data if successfull will contain the cluster ids for which there
+		// is no group id and the length is 11 (i.e cluster is complete)
+		let _ = listen_to_event();
+		// });
+
+		// let _ = handle.join().unwrap();
+
+		log::info!("after joining the handle");
 
 		let _ = tokio::task::spawn_blocking(move || async move {
 			loop {
@@ -55,6 +83,9 @@ pub mod frost {
 			}
 		});
 
+		log::info!("BEFORE LOOP");
+
+		loop {}
 		Ok(())
 	}
 
@@ -84,19 +115,23 @@ pub mod frost {
 	}
 
 	async fn create_client() -> Result<OnlineClient<PolkadotConfig>, subxt::Error> {
+		log::info!("create_client");
 		let api = OnlineClient::<PolkadotConfig>::new().await?;
 		Ok(api)
 	}
 
 	async fn listen_to_event() -> Result<(), FrostWorkerError> {
+		log::info!("listen_to_event");
 		let api = create_client().await.or(Err(FrostWorkerError::FailedToCreateSubstrateClient))?;
 
+		log::info!("listen_to_event api {:#?}", &api);
 		let mut blocks = api
 			.blocks()
 			.subscribe_finalized()
 			.await
 			.or(Err(FrostWorkerError::FailedToSubscribeToBlocks))?;
 
+		log::info!("after listen_to_event");
 		// Ignore errors and move to the next iteration
 		// We are ignoring errors because we will retry after 30 from_secs and
 		// the events will be emitted again
@@ -131,10 +166,10 @@ pub mod frost {
 		call: Payload<T>,
 		this_validator_keypair: &Keypair,
 	) -> Result<(), FrostWorkerError> {
-		// let this_validator_keypair = create_substrate_signer(config)?;
-
+		log::info!("sign_and_send_substrate_tx");
 		let api = create_client().await.or(Err(FrostWorkerError::FailedToCreateSubstrateClient))?;
 
+		log::info!("sign_and_send_substrate_tx api {:#?}", &api);
 		let _ = api
 			.tx()
 			.sign_and_submit_then_watch_default(&call, this_validator_keypair)
