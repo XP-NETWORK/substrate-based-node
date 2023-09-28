@@ -2,7 +2,7 @@
 pub mod frost {
 	use std::{
 		fs::{self},
-		thread::{self, sleep},
+		path::PathBuf,
 		time::Duration,
 	};
 
@@ -12,6 +12,7 @@ pub mod frost {
 	use subxt_signer::{bip39::Mnemonic, sr25519::Keypair};
 
 	/// The error enum for Frost Worker
+	#[derive(Debug)]
 	pub enum FrostWorkerError {
 		/// Failure in submitting tx to the substrate runtime
 		FailedToSubmitTransaction,
@@ -22,7 +23,9 @@ pub mod frost {
 		///
 		FailedToCreateSubstrateClient,
 		///
-		FailedToReadMnemonic,
+		FailedToParseMnemonic,
+		///
+		FailedToCreateKeypair,
 	}
 
 	// task_manager.spawn_handle().spawn_blocking("test", None, async move {
@@ -34,70 +37,61 @@ pub mod frost {
 	/// then start the group key generation.
 	pub fn start_frost_worker<'a>(
 		config: &'a Configuration,
-		task_manager: &'a mut TaskManager,
+		_task_manager: &'a mut TaskManager,
 	) -> Result<(), FrostWorkerError> {
-		log::info!("info start_frost_worker");
-		// log::log!("log start_frost_worker");
 		log::warn!("warn log start_frost_worker");
-		log::error!("error log start_frost_worker");
-		log::trace!("trace log start_frost_worker");
 
-		let this_validator_keypair = create_substrate_signer(config)?;
+		let keystore_path = config.keystore.path();
+		let chain_type = config.chain_spec.chain_type();
+		log::warn!("keystore path {:#?}", keystore_path);
+		log::warn!("chain type {:#?}", chain_type);
 
-		// let t = task_manager.spawn_handle().spawn_blocking("test", None, async move {
-		// 	log::info!("Inside first task");
-		// 	log::warn!("Inside first task");
-		// 	log::error!("Inside first task");
-		// 	log::trace!("Inside first task");
-		// 	// We listen to the event that is emitted by the call that is called below
-		// 	// The emitted data if successfull will contain the cluster ids for which there
-		// 	// is no group id and the length is 11 (i.e cluster is complete)
-		// 	let _ = listen_to_event().await;
-		// 	// sleep(Duration::from_secs(60));
-		// 	loop {}
-		// 	// return b"return";
-		// });
+		let signer = create_substrate_signer(config);
 
-		// let handle = thread::spawn(|| {
-		// 	log::info!("Inside first task");
-		// 	log::warn!("Inside first task");
-		// 	log::error!("Inside first task");
-		// 	log::trace!("Inside first task");
-		// We listen to the event that is emitted by the call that is called below
-		// The emitted data if successfull will contain the cluster ids for which there
-		// is no group id and the length is 11 (i.e cluster is complete)
-		let _ = listen_to_event();
-		// });
-
-		// let _ = handle.join().unwrap();
-
-		log::info!("after joining the handle");
+		let signer = match signer {
+			Ok(v) => v,
+			Err(e) => {
+				log::warn!("I errored {:#?}", e);
+				return Err(e);
+			},
+		};
 
 		let _ = tokio::task::spawn_blocking(move || async move {
+			log::warn!("Inside first task");
+			// We listen to the event that is emitted by the call that is called below
+			// The emitted data if successfull will contain the cluster ids for which there
+			// is no group id and the length is 11 (i.e cluster is complete)
+			let _ = listen_to_event().await;
+		});
+
+		log::warn!("between tasks");
+
+		let _ = tokio::task::spawn_blocking(move || async move {
+			log::warn!("Inside second task");
+
 			loop {
 				let call = bridge::tx().clusters().emit_ids_of_clusters_without_group_keys();
 
 				// ignore err if there is any and try again after sometime
-				let _ = sign_and_send_substrate_tx(call, &this_validator_keypair).await;
+				let _ = sign_and_send_substrate_tx(call, &signer).await;
 				let _ = tokio::time::sleep(Duration::from_secs(30));
 			}
 		});
 
-		log::info!("BEFORE LOOP");
-
-		loop {}
 		Ok(())
 	}
 
-	fn get_path(config: &Configuration) -> std::path::PathBuf {
+	fn get_path(config: &Configuration) -> PathBuf {
 		let base_path = &config.base_path;
+
 		let config_dir =
 			base_path.config_dir(config.chain_spec.id()).join("keystore").join("passphrase");
+
 		config_dir
 	}
 
 	fn read_phrase(path: &str) -> Result<String, FrostWorkerError> {
-		let contents = fs::read_to_string(path).or(Err(FrostWorkerError::FailedToReadMnemonic))?;
+		let contents = fs::read_to_string(path).unwrap_or_default();
 		Ok(contents)
 	}
 
@@ -109,8 +103,13 @@ pub mod frost {
 
 	fn create_substrate_signer(config: &Configuration) -> Result<Keypair, FrostWorkerError> {
 		let passphrase = get_passphrase(config)?;
-		let mnemonic = Mnemonic::parse(passphrase).unwrap();
-		let keypair = Keypair::from_phrase(&mnemonic, None).unwrap();
+
+		let mnemonic =
+			Mnemonic::parse(passphrase).or(Err(FrostWorkerError::FailedToParseMnemonic))?;
+
+		let keypair = Keypair::from_phrase(&mnemonic, None)
+			.or(Err(FrostWorkerError::FailedToCreateKeypair))?;
+
 		Ok(keypair)
 	}
 
