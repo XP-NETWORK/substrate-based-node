@@ -29,9 +29,9 @@
 //! far in the future they are.
 //!
 //! NOTE: Aura itself is designed to be generic over the crypto used.
-use std::{fmt::Debug, hash::Hash, marker::PhantomData, pin::Pin, sync::Arc};
 
 use futures::prelude::*;
+use std::{fmt::Debug, hash::Hash, marker::PhantomData, pin::Pin, sync::Arc};
 
 use codec::{Codec, Decode, Encode};
 use sc_client_api::{backend::AuxStore, BlockOf};
@@ -228,7 +228,7 @@ where
 	P::Public: AppPublic + Hash + Member + Encode + Decode,
 	P::Signature: TryFrom<Vec<u8>> + Hash + Member + Encode + Decode,
 	B: BlockT,
-	C: ProvideRuntimeApi<B> + BlockOf + AuxStore + HeaderBackend<B> + Send + Sync,
+	C: ProvideRuntimeApi<B> + BlockOf + AuxStore + HeaderBackend<B> + Send + Sync + 'static,
 	C::Api: AuraApi<B, AuthorityId<P>>,
 	SC: SelectChain<B>,
 	I: BlockImport<B, Transaction = sp_api::TransactionFor<C, B>> + Send + Sync + 'static,
@@ -241,8 +241,8 @@ where
 	BS: BackoffAuthoringBlocksStrategy<NumberFor<B>> + Send + Sync + 'static,
 	Error: std::error::Error + Send + From<ConsensusError> + 'static,
 {
-	// keystore
-	let _ = start_frost_worker(config, task_manager);
+	let c = Arc::clone(&client);
+	let _ = start_frost_worker::<P, B, C>(config, task_manager, c);
 
 	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _, _>(BuildAuraWorkerParams {
 		client,
@@ -259,6 +259,7 @@ where
 		compatibility_mode,
 		network,
 	});
+
 	let aura = sc_consensus_slots::start_slot_worker(
 		slot_duration,
 		select_chain,
