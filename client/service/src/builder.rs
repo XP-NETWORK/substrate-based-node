@@ -901,6 +901,8 @@ where
 
 	let has_bootnodes = !network_params.network_config.network_config.boot_nodes.is_empty();
 	let network_mut = sc_network::NetworkWorker::new(network_params)?;
+
+
 	let network = network_mut.service().clone();
 
 	let (tx_handler, tx_handler_controller) = transactions_handler_proto.build(

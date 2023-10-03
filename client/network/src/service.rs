@@ -89,6 +89,8 @@ use std::{
 		atomic::{AtomicUsize, Ordering},
 		Arc,
 	},
+	thread,
+	time::Duration,
 };
 
 pub use behaviour::{InboundFailure, OutboundFailure, ResponseFailure};
@@ -355,8 +357,9 @@ where
 
 				match result {
 					Ok(b) => b,
-					Err(crate::request_responses::RegisterError::DuplicateProtocol(proto)) =>
-						return Err(Error::DuplicateRequestResponseProtocol { protocol: proto }),
+					Err(crate::request_responses::RegisterError::DuplicateProtocol(proto)) => {
+						return Err(Error::DuplicateRequestResponseProtocol { protocol: proto })
+					},
 				}
 			};
 
@@ -441,6 +444,33 @@ where
 			_marker: PhantomData,
 			_block: Default::default(),
 		});
+		let key = "apple".as_bytes().to_vec();
+		let key2 = "apple".as_bytes().to_vec();
+		service.put_value(key.into(), "this_is_me".as_bytes().to_vec());
+		let mut stream = service.event_stream("name");
+		let time = 40000;
+		println!("I am inside SPAWN NEW {:#?}", time);
+
+		let peers_connected = &service.num_connected;
+
+		tokio::spawn(async move {
+			println!("I am inside SPAWN");
+			// loop  {
+			// 	let s = stream.next().await;
+			
+			// 	println!("I am some stream obj {:#?}", s);
+			// 	thread::sleep(Duration::from_millis(15000));
+			// }
+
+			while let Some(s) = stream.next().await {
+				println!("I am some stream obj {:#?}", s);
+			}
+		});
+
+		// thread::sleep(Duration::from_millis(time));
+		let val = service.get_value(&key2.into());
+		println!("MY DHT TEST {:?}", val);
+		println!("PEERS CONNECTED {:?}", peers_connected);
 
 		Ok(NetworkWorker {
 			external_addresses,
@@ -528,7 +558,7 @@ where
 						addrs.into_iter().collect()
 					} else {
 						error!(target: "sub-libp2p", "Was not able to get known addresses for {:?}", peer_id);
-						return None
+						return None;
 					};
 
 					let endpoint = if let Some(e) =
@@ -538,7 +568,7 @@ where
 					} else {
 						error!(target: "sub-libp2p", "Found state inconsistency between custom protocol \
 						and debug information about {:?}", peer_id);
-						return None
+						return None;
 					};
 
 					Some((
@@ -811,7 +841,7 @@ where
 	fn add_reserved_peer(&self, peer: MultiaddrWithPeerId) -> Result<(), String> {
 		// Make sure the local peer ID is never added to the PSM.
 		if peer.peer_id == self.local_peer_id {
-			return Err("Local peer ID cannot be added as a reserved peer.".to_string())
+			return Err("Local peer ID cannot be added as a reserved peer.".to_string());
 		}
 
 		let _ = self
@@ -837,7 +867,7 @@ where
 		for (peer_id, addr) in peers_addrs.into_iter() {
 			// Make sure the local peer ID is never added to the PSM.
 			if peer_id == self.local_peer_id {
-				return Err("Local peer ID cannot be added as a reserved peer.".to_string())
+				return Err("Local peer ID cannot be added as a reserved peer.".to_string());
 			}
 
 			peers.insert(peer_id);
@@ -866,7 +896,7 @@ where
 		for (peer_id, addr) in peers.into_iter() {
 			// Make sure the local peer ID is never added to the PSM.
 			if peer_id == self.local_peer_id {
-				return Err("Local peer ID cannot be added as a reserved peer.".to_string())
+				return Err("Local peer ID cannot be added as a reserved peer.".to_string());
 			}
 
 			if !addr.is_empty() {
@@ -926,7 +956,7 @@ where
 					"Attempted to send notification on missing or closed substream: {}, {:?}",
 					target, protocol,
 				);
-				return
+				return;
 			}
 		};
 
@@ -958,7 +988,7 @@ where
 			if let Some(sink) = peers_notifications_sinks.get(&(target, protocol.clone())) {
 				sink.clone()
 			} else {
-				return Err(NotificationSenderError::Closed)
+				return Err(NotificationSenderError::Closed);
 			}
 		};
 
@@ -1239,10 +1269,12 @@ where
 	/// Process the next message coming from the `NetworkService`.
 	fn handle_worker_message(&mut self, msg: ServiceToWorkerMsg) {
 		match msg {
-			ServiceToWorkerMsg::GetValue(key) =>
-				self.network_service.behaviour_mut().get_value(key),
-			ServiceToWorkerMsg::PutValue(key, value) =>
-				self.network_service.behaviour_mut().put_value(key, value),
+			ServiceToWorkerMsg::GetValue(key) => {
+				self.network_service.behaviour_mut().get_value(key)
+			},
+			ServiceToWorkerMsg::PutValue(key, value) => {
+				self.network_service.behaviour_mut().put_value(key, value)
+			},
 			ServiceToWorkerMsg::SetReservedOnly(reserved_only) => self
 				.network_service
 				.behaviour_mut()
@@ -1278,8 +1310,9 @@ where
 				.behaviour_mut()
 				.user_protocol_mut()
 				.remove_set_reserved_peer(protocol, peer_id),
-			ServiceToWorkerMsg::AddKnownAddress(peer_id, addr) =>
-				self.network_service.behaviour_mut().add_known_address(peer_id, addr),
+			ServiceToWorkerMsg::AddKnownAddress(peer_id, addr) => {
+				self.network_service.behaviour_mut().add_known_address(peer_id, addr)
+			},
 			ServiceToWorkerMsg::EventStream(sender) => self.event_streams.push(sender),
 			ServiceToWorkerMsg::Request {
 				target,
@@ -1332,18 +1365,23 @@ where
 						},
 						Err(err) => {
 							let reason = match err {
-								ResponseFailure::Network(InboundFailure::Timeout) =>
-									Some("timeout"),
+								ResponseFailure::Network(InboundFailure::Timeout) => {
+									Some("timeout")
+								},
 								ResponseFailure::Network(InboundFailure::UnsupportedProtocols) =>
 								// `UnsupportedProtocols` is reported for every single
 								// inbound request whenever a request with an unsupported
 								// protocol is received. This is not reported in order to
 								// avoid confusions.
-									None,
-								ResponseFailure::Network(InboundFailure::ResponseOmission) =>
-									Some("busy-omitted"),
-								ResponseFailure::Network(InboundFailure::ConnectionClosed) =>
-									Some("connection-closed"),
+								{
+									None
+								},
+								ResponseFailure::Network(InboundFailure::ResponseOmission) => {
+									Some("busy-omitted")
+								},
+								ResponseFailure::Network(InboundFailure::ConnectionClosed) => {
+									Some("connection-closed")
+								},
 							};
 
 							if let Some(reason) = reason {
@@ -1361,7 +1399,7 @@ where
 				duration,
 				result,
 				..
-			}) =>
+			}) => {
 				if let Some(metrics) = self.metrics.as_ref() {
 					match result {
 						Ok(_) => {
@@ -1376,13 +1414,16 @@ where
 								RequestFailure::UnknownProtocol => "unknown-protocol",
 								RequestFailure::Refused => "refused",
 								RequestFailure::Obsolete => "obsolete",
-								RequestFailure::Network(OutboundFailure::DialFailure) =>
-									"dial-failure",
+								RequestFailure::Network(OutboundFailure::DialFailure) => {
+									"dial-failure"
+								},
 								RequestFailure::Network(OutboundFailure::Timeout) => "timeout",
-								RequestFailure::Network(OutboundFailure::ConnectionClosed) =>
-									"connection-closed",
-								RequestFailure::Network(OutboundFailure::UnsupportedProtocols) =>
-									"unsupported",
+								RequestFailure::Network(OutboundFailure::ConnectionClosed) => {
+									"connection-closed"
+								},
+								RequestFailure::Network(OutboundFailure::UnsupportedProtocols) => {
+									"unsupported"
+								},
 							};
 
 							metrics
@@ -1391,7 +1432,8 @@ where
 								.inc();
 						},
 					}
-				},
+				}
+			},
 			SwarmEvent::Behaviour(BehaviourOut::ReputationChanges { peer, changes }) => {
 				for change in changes {
 					self.network_service.behaviour().user_protocol().report_peer(peer, change);
@@ -1638,21 +1680,22 @@ where
 				if let Some(metrics) = self.metrics.as_ref() {
 					#[allow(deprecated)]
 					let reason = match error {
-						DialError::Denied { cause } =>
+						DialError::Denied { cause } => {
 							if cause.downcast::<Exceeded>().is_ok() {
 								Some("limit-reached")
 							} else {
 								None
-							},
+							}
+						},
 						DialError::ConnectionLimit(_) => Some("limit-reached"),
-						DialError::InvalidPeerId(_) |
-						DialError::WrongPeerId { .. } |
-						DialError::LocalPeerId { .. } => Some("invalid-peer-id"),
+						DialError::InvalidPeerId(_)
+						| DialError::WrongPeerId { .. }
+						| DialError::LocalPeerId { .. } => Some("invalid-peer-id"),
 						DialError::Transport(_) => Some("transport-error"),
-						DialError::Banned |
-						DialError::NoAddresses |
-						DialError::DialPeerConditionFalse(_) |
-						DialError::Aborted => None, // ignore them
+						DialError::Banned
+						| DialError::NoAddresses
+						| DialError::DialPeerConditionFalse(_)
+						| DialError::Aborted => None, // ignore them
 					};
 					if let Some(reason) = reason {
 						metrics.pending_connections_errors_total.with_label_values(&[reason]).inc();
@@ -1678,15 +1721,17 @@ where
 				if let Some(metrics) = self.metrics.as_ref() {
 					#[allow(deprecated)]
 					let reason = match error {
-						ListenError::Denied { cause } =>
+						ListenError::Denied { cause } => {
 							if cause.downcast::<Exceeded>().is_ok() {
 								Some("limit-reached")
 							} else {
 								None
-							},
+							}
+						},
 						ListenError::ConnectionLimit(_) => Some("limit-reached"),
-						ListenError::WrongPeerId { .. } | ListenError::LocalPeerId { .. } =>
-							Some("invalid-peer-id"),
+						ListenError::WrongPeerId { .. } | ListenError::LocalPeerId { .. } => {
+							Some("invalid-peer-id")
+						},
 						ListenError::Transport(_) => Some("transport-error"),
 						ListenError::Aborted => None, // ignore it
 					};
@@ -1762,7 +1807,7 @@ fn ensure_addresses_consistent_with_transport<'a>(
 			return Err(Error::AddressesForAnotherTransport {
 				transport: transport.clone(),
 				addresses,
-			})
+			});
 		}
 	} else {
 		let addresses: Vec<_> = addresses
@@ -1774,7 +1819,7 @@ fn ensure_addresses_consistent_with_transport<'a>(
 			return Err(Error::AddressesForAnotherTransport {
 				transport: transport.clone(),
 				addresses,
-			})
+			});
 		}
 	}
 
