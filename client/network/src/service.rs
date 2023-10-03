@@ -444,33 +444,7 @@ where
 			_marker: PhantomData,
 			_block: Default::default(),
 		});
-		let key = "apple".as_bytes().to_vec();
-		let key2 = "apple".as_bytes().to_vec();
-		service.put_value(key.into(), "this_is_me".as_bytes().to_vec());
-		let mut stream = service.event_stream("name");
-		let time = 40000;
-		println!("I am inside SPAWN NEW {:#?}", time);
-
-		let peers_connected = &service.num_connected;
-
-		tokio::spawn(async move {
-			println!("I am inside SPAWN");
-			// loop  {
-			// 	let s = stream.next().await;
-			
-			// 	println!("I am some stream obj {:#?}", s);
-			// 	thread::sleep(Duration::from_millis(15000));
-			// }
-
-			while let Some(s) = stream.next().await {
-				println!("I am some stream obj {:#?}", s);
-			}
-		});
-
-		// thread::sleep(Duration::from_millis(time));
-		let val = service.get_value(&key2.into());
-		println!("MY DHT TEST {:?}", val);
-		println!("PEERS CONNECTED {:?}", peers_connected);
+	
 
 		Ok(NetworkWorker {
 			external_addresses,
@@ -1167,9 +1141,9 @@ where
 	/// Updated by the `NetworkWorker` and loaded by the `NetworkService`.
 	listen_addresses: Arc<Mutex<Vec<Multiaddr>>>,
 	/// Updated by the `NetworkWorker` and loaded by the `NetworkService`.
-	num_connected: Arc<AtomicUsize>,
+	pub num_connected: Arc<AtomicUsize>,
 	/// The network service that can be extracted and shared through the codebase.
-	service: Arc<NetworkService<B, H>>,
+	pub service: Arc<NetworkService<B, H>>,
 	/// The *actual* network.
 	network_service: Swarm<Behaviour<B>>,
 	/// Messages from the [`NetworkService`] that must be processed.

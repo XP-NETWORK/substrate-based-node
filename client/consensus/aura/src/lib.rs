@@ -53,19 +53,22 @@ use sp_keystore::KeystorePtr;
 use sp_runtime::traits::{Block as BlockT, Header, Member, NumberFor};
 // New Types required by the modified AURA
 use sc_chain_spec::ChainSpec;
-use sc_network::types::ProtocolName;
+use sc_network::{types::ProtocolName, NetworkService};
 use sc_service::{Configuration, TaskManager};
 pub mod frost;
 mod import_queue;
 pub mod standalone;
 use frost::frost::start_frost_worker;
+pub mod notifications;
 
 pub use crate::standalone::{find_pre_digest, slot_duration};
+
 pub use import_queue::{
 	build_verifier, import_queue, AuraVerifier, BuildVerifierParams, CheckForEquivocation,
 	ImportQueueParams,
 };
 pub use sc_consensus_slots::SlotProportion;
+
 pub use sp_consensus::SyncOracle;
 pub use sp_consensus_aura::{
 	digests::CompatibleDigestItem,
@@ -151,7 +154,10 @@ pub fn aura_peer_notification_config(
 }
 
 /// Parameters of [`start_aura`].
-pub struct StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
+pub struct StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, N, TBl>
+where
+	TBl: BlockT,
+{
 	/// The duration of a slot.
 	pub slot_duration: SlotDuration,
 	/// The client to interact with the chain.
@@ -192,7 +198,7 @@ pub struct StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
 	/// The Network instance.
 	///
 	/// This network will be used for notifications in our modified AURA.
-	pub network: AN,
+	pub network: Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
 
 	///
 	pub config: &'a Configuration,
@@ -201,7 +207,7 @@ pub struct StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, N, AN> {
 }
 
 /// Start the aura worker. The returned future should be run in a futures executor.
-pub fn start_aura<'a, P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(
+pub fn start_aura<'a, P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, TBl>(
 	StartAuraParams {
 		config,
 		slot_duration,
@@ -221,7 +227,7 @@ pub fn start_aura<'a, P, B, C, SC, I, PF, SO, L, CIDP, BS, Error, AN>(
 		compatibility_mode,
 		network,
 		task_manager,
-	}: StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, NumberFor<B>, AN>,
+	}: StartAuraParams<'a, C, SC, I, PF, SO, L, CIDP, BS, NumberFor<B>, TBl>,
 ) -> Result<impl Future<Output = ()>, ConsensusError>
 where
 	P: Pair + Send + Sync,
@@ -240,9 +246,12 @@ where
 	CIDP::InherentDataProviders: InherentDataProviderExt + Send,
 	BS: BackoffAuthoringBlocksStrategy<NumberFor<B>> + Send + Sync + 'static,
 	Error: std::error::Error + Send + From<ConsensusError> + 'static,
+	TBl: BlockT,
 {
 	let c = Arc::clone(&client);
 	let _ = start_frost_worker::<P, B, C>(config, task_manager, c);
+
+	notifications::notification_worker::<TBl>(network.clone(), task_manager);
 
 	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _, _>(BuildAuraWorkerParams {
 		client,
