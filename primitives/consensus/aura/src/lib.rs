@@ -91,5 +91,7 @@ sp_api::decl_runtime_apis! {
 
 		/// Return the current set of authorities.
 		fn authorities() -> Vec<AuthorityId>;
+
+		fn emit_ids_of_clusters_without_group_keys() -> Option<u64>;
 	}
 }

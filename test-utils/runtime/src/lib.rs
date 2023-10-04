@@ -622,6 +622,12 @@ impl_runtime_apis! {
 		fn authorities() -> Vec<AuraId> {
 			SubstrateTest::authorities().into_iter().map(|auth| AuraId::from(auth)).collect()
 		}
+
+		fn emit_ids_of_clusters_without_group_keys() -> Option<u64> {
+			// todo!("add proper impl");
+			let a: u64 = 5;
+			Some(a)
+		}
 	}
 
 	impl sp_consensus_babe::BabeApi<Block> for Runtime {
