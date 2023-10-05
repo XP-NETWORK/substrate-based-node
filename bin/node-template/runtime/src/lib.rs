@@ -9,14 +9,23 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 use pallet_grandpa::AuthorityId as GrandpaId;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
+use sp_core::{ crypto::KeyTypeId, OpaqueMetadata,OpaquePeerId };
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	create_runtime_str,
+	generic,
+	impl_opaque_keys,
 	traits::{
-		AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, One, Verify,
+		AccountIdLookup,
+		BlakeTwo256,
+		Block as BlockT,
+		IdentifyAccount,
+		NumberFor,
+		One,
+		Verify,
 	},
-	transaction_validity::{TransactionSource, TransactionValidity},
-	ApplyExtrinsicResult, MultiSignature,
+	transaction_validity::{ TransactionSource, TransactionValidity },
+	ApplyExtrinsicResult,
+	MultiSignature,
 };
 use sp_std::prelude::*;
 #[cfg(feature = "std")]
@@ -25,26 +34,37 @@ use sp_version::RuntimeVersion;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
-	construct_runtime, parameter_types,
+	construct_runtime,
+	parameter_types,
 	traits::{
-		ConstBool, ConstU128, ConstU32, ConstU64, ConstU8, KeyOwnerProofSystem, Randomness,
+		ConstBool,
+		ConstU128,
+		ConstU32,
+		ConstU64,
+		ConstU8,
+		KeyOwnerProofSystem,
+		Randomness,
 		StorageInfo,
 	},
 	weights::{
 		constants::{
-			BlockExecutionWeight, ExtrinsicBaseWeight, RocksDbWeight, WEIGHT_REF_TIME_PER_SECOND,
+			BlockExecutionWeight,
+			ExtrinsicBaseWeight,
+			RocksDbWeight,
+			WEIGHT_REF_TIME_PER_SECOND,
 		},
-		IdentityFee, Weight,
+		IdentityFee,
+		Weight,
 	},
 	StorageValue,
 };
 pub use frame_system::Call as SystemCall;
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
-use pallet_transaction_payment::{ConstFeeMultiplier, CurrencyAdapter, Multiplier};
+use pallet_transaction_payment::{ ConstFeeMultiplier, CurrencyAdapter, Multiplier };
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
-pub use sp_runtime::{Perbill, Permill};
+pub use sp_runtime::{ Perbill, Permill };
 
 /// Import the template pallet.
 pub use pallet_template;
@@ -308,8 +328,12 @@ pub type SignedExtra = (
 );
 
 /// Unchecked extrinsic type as expected by this runtime.
-pub type UncheckedExtrinsic =
-	generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<
+	Address,
+	RuntimeCall,
+	Signature,
+	SignedExtra
+>;
 /// The payload being signed in transactions.
 pub type SignedPayload = generic::SignedPayload<RuntimeCall, SignedExtra>;
 /// Executive: handles dispatch to the various modules.
@@ -318,7 +342,7 @@ pub type Executive = frame_executive::Executive<
 	Block,
 	frame_system::ChainContext<Runtime>,
 	Runtime,
-	AllPalletsWithSystem,
+	AllPalletsWithSystem
 >;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -413,11 +437,13 @@ impl_runtime_apis! {
 
 		}
 
-		fn emit_ids_of_clusters_without_group_keys() -> Option<u64> {
-			// todo!("add proper impl");
-			let a: u64 = 5;
-			Some(a)
-		}
+		fn emit_ids_of_clusters_without_group_keys() -> Option<Vec<u64>>{
+			todo!();
+		};
+
+		fn get_validators_by_cluster_id(cluster_id:u64) -> <Vec<OpaquePeerID>{
+			todo!();
+		};
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {
