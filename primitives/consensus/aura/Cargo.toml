@@ -18,6 +18,7 @@ codec = { package = "parity-scale-codec", version = "3.6.1", default-features = 
 scale-info = { version = "2.5.0", default-features = false, features = ["derive"] }
 sp-api = { version = "4.0.0-dev", default-features = false, path = "../../api" }
 sp-application-crypto = { version = "23.0.0", default-features = false, path = "../../application-crypto" }
+sp-core = { version = "21.0.0", default-features = false, path = "../../core"}
 sp-consensus-slots = { version = "0.10.0-dev", default-features = false, path = "../slots" }
 sp-inherents = { version = "4.0.0-dev", default-features = false, path = "../../inherents" }
 sp-runtime = { version = "24.0.0", default-features = false, path = "../../runtime" }

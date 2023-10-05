@@ -23,6 +23,8 @@ use codec::{Codec, Decode, Encode};
 use sp_runtime::ConsensusEngineId;
 use sp_std::vec::Vec;
 
+use sp_core::OpaquePeerId;
+
 pub mod digests;
 pub mod inherents;
 
@@ -92,6 +94,8 @@ sp_api::decl_runtime_apis! {
 		/// Return the current set of authorities.
 		fn authorities() -> Vec<AuthorityId>;
 
-		fn emit_ids_of_clusters_without_group_keys() -> Option<u64>;
+		fn emit_ids_of_clusters_without_group_keys() -> Option<Vec<u64>>;
+
+		fn get_validators_by_cluster_id(cluster_id:u64) -> <Vec<OpaquePeerID>;
 	}
 }

@@ -11671,6 +11671,7 @@ dependencies = [
  "sp-api",
  "sp-application-crypto",
  "sp-consensus-slots",
+ "sp-core",
  "sp-inherents",
  "sp-runtime",
  "sp-std 8.0.0",
