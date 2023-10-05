@@ -441,7 +441,7 @@ impl_runtime_apis! {
 			todo!();
 		};
 
-		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerID>{
+		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerId>{
 			todo!();
 		};
 	}
