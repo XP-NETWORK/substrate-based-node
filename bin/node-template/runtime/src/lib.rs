@@ -439,11 +439,11 @@ impl_runtime_apis! {
 
 		fn emit_ids_of_clusters_without_group_keys() -> Option<Vec<u64>>{
 			todo!();
-		};
+		}
 
 		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerId>{
 			todo!();
-		};
+		}
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {

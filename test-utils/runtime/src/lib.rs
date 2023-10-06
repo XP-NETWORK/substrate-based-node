@@ -25,52 +25,48 @@ pub mod extrinsic;
 pub mod genesismap;
 pub mod substrate_test_pallet;
 
-use codec::{Decode, Encode};
+use codec::{ Decode, Encode };
 use frame_support::{
 	construct_runtime,
 	dispatch::DispatchClass,
 	parameter_types,
-	traits::{ConstU32, ConstU64},
+	traits::{ ConstU32, ConstU64 },
 	weights::{
-		constants::{BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND},
+		constants::{ BlockExecutionWeight, ExtrinsicBaseWeight, WEIGHT_REF_TIME_PER_SECOND },
 		Weight,
 	},
 };
-use frame_system::{
-	limits::{BlockLength, BlockWeights},
-	CheckNonce, CheckWeight,
-};
+use frame_system::{ limits::{ BlockLength, BlockWeights }, CheckNonce, CheckWeight };
 use scale_info::TypeInfo;
 use sp_std::prelude::*;
 
-use sp_application_crypto::{ecdsa, ed25519, sr25519, RuntimeAppPublic};
-use sp_core::{OpaqueMetadata, RuntimeDebug};
-use sp_trie::{
-	trie_types::{TrieDBBuilder, TrieDBMutBuilderV1},
-	PrefixedMemoryDB, StorageProof,
-};
-use trie_db::{Trie, TrieMut};
+use sp_application_crypto::{ ecdsa, ed25519, sr25519, RuntimeAppPublic };
+use sp_core::{ OpaqueMetadata, RuntimeDebug,OpaquePeerId };
+use sp_trie::{ trie_types::{ TrieDBBuilder, TrieDBMutBuilderV1 }, PrefixedMemoryDB, StorageProof };
+use trie_db::{ Trie, TrieMut };
 
-use sp_api::{decl_runtime_apis, impl_runtime_apis};
+use sp_api::{ decl_runtime_apis, impl_runtime_apis };
 pub use sp_core::hash::H256;
-use sp_inherents::{CheckInherentsResult, InherentData};
+use sp_inherents::{ CheckInherentsResult, InherentData };
 use sp_runtime::{
-	create_runtime_str, impl_opaque_keys,
-	traits::{BlakeTwo256, Block as BlockT, DispatchInfoOf, NumberFor, Verify},
-	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
-	ApplyExtrinsicResult, Perbill,
+	create_runtime_str,
+	impl_opaque_keys,
+	traits::{ BlakeTwo256, Block as BlockT, DispatchInfoOf, NumberFor, Verify },
+	transaction_validity::{ TransactionSource, TransactionValidity, TransactionValidityError },
+	ApplyExtrinsicResult,
+	Perbill,
 };
 #[cfg(any(feature = "std", test))]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 
-pub use sp_consensus_babe::{AllowedSlots, BabeEpochConfiguration, Slot};
+pub use sp_consensus_babe::{ AllowedSlots, BabeEpochConfiguration, Slot };
 
 pub use pallet_balances::Call as BalancesCall;
 
 pub type AuraId = sp_consensus_aura::sr25519::AuthorityId;
 #[cfg(feature = "std")]
-pub use extrinsic::{ExtrinsicBuilder, Transfer};
+pub use extrinsic::{ ExtrinsicBuilder, Transfer };
 
 const LOG_TARGET: &str = "substrate-test-runtime";
 
@@ -88,7 +84,7 @@ pub mod wasm_binary_logging_disabled {
 pub fn wasm_binary_unwrap() -> &'static [u8] {
 	WASM_BINARY.expect(
 		"Development wasm binary is not available. Testing is only supported with the flag \
-		 disabled.",
+		 disabled."
 	)
 }
 
@@ -97,7 +93,7 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 pub fn wasm_binary_logging_disabled_unwrap() -> &'static [u8] {
 	wasm_binary_logging_disabled::WASM_BINARY.expect(
 		"Development wasm binary is not available. Testing is only supported with the flag \
-		 disabled.",
+		 disabled."
 	)
 }
 
@@ -144,8 +140,12 @@ pub type SignedExtra = (CheckNonce<Runtime>, CheckWeight<Runtime>, CheckSubstrat
 /// The payload being signed in transactions.
 pub type SignedPayload = sp_runtime::generic::SignedPayload<RuntimeCall, SignedExtra>;
 /// Unchecked extrinsic type as expected by this runtime.
-pub type Extrinsic =
-	sp_runtime::generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
+pub type Extrinsic = sp_runtime::generic::UncheckedExtrinsic<
+	Address,
+	RuntimeCall,
+	Signature,
+	SignedExtra
+>;
 
 /// An identifier for an account on this system.
 pub type AccountId = <Signature as Verify>::Signer;
@@ -216,7 +216,11 @@ decl_runtime_apis! {
 		/// Traces log "Hey I'm runtime."
 		fn do_trace_log();
 		/// Verify the given signature, public & message bundle.
-		fn verify_ed25519(sig: ed25519::Signature, public: ed25519::Public, message: Vec<u8>) -> bool;
+		fn verify_ed25519(
+			sig: ed25519::Signature,
+			public: ed25519::Public,
+			message: Vec<u8>
+		) -> bool;
 		/// Write the given `value` under the given `key` into the storage and then optional panic.
 		fn write_key_value(key: Vec<u8>, value: Vec<u8>, panic: bool);
 	}
@@ -227,7 +231,7 @@ pub type Executive = frame_executive::Executive<
 	Block,
 	frame_system::ChainContext<Runtime>,
 	Runtime,
-	AllPalletsWithSystem,
+	AllPalletsWithSystem
 >;
 
 #[derive(Copy, Clone, PartialEq, Eq, Encode, Decode, RuntimeDebug, TypeInfo)]
@@ -247,7 +251,7 @@ impl sp_runtime::traits::Dispatchable for CheckSubstrateCall {
 
 	fn dispatch(
 		self,
-		_origin: Self::RuntimeOrigin,
+		_origin: Self::RuntimeOrigin
 	) -> sp_runtime::DispatchResultWithInfo<Self::PostInfo> {
 		panic!("This implementation should not be used for actual dispatch.");
 	}
@@ -261,7 +265,7 @@ impl sp_runtime::traits::SignedExtension for CheckSubstrateCall {
 	const IDENTIFIER: &'static str = "CheckSubstrateCall";
 
 	fn additional_signed(
-		&self,
+		&self
 	) -> sp_std::result::Result<Self::AdditionalSigned, TransactionValidityError> {
 		Ok(())
 	}
@@ -271,7 +275,7 @@ impl sp_runtime::traits::SignedExtension for CheckSubstrateCall {
 		_who: &Self::AccountId,
 		call: &Self::Call,
 		_info: &DispatchInfoOf<Self::Call>,
-		_len: usize,
+		_len: usize
 	) -> TransactionValidity {
 		log::trace!(target: LOG_TARGET, "validate");
 		match call {
@@ -286,7 +290,7 @@ impl sp_runtime::traits::SignedExtension for CheckSubstrateCall {
 		who: &Self::AccountId,
 		call: &Self::Call,
 		info: &sp_runtime::traits::DispatchInfoOf<Self::Call>,
-		len: usize,
+		len: usize
 	) -> Result<Self::Pre, TransactionValidityError> {
 		self.validate(who, call, info, len).map(drop)
 	}
@@ -309,8 +313,10 @@ const AVERAGE_ON_INITIALIZE_RATIO: Perbill = Perbill::from_percent(10);
 /// by  Operational  extrinsics.
 const NORMAL_DISPATCH_RATIO: Perbill = Perbill::from_percent(75);
 /// Max weight, actual value does not matter for test runtime.
-const MAXIMUM_BLOCK_WEIGHT: Weight =
-	Weight::from_parts(WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2), u64::MAX);
+const MAXIMUM_BLOCK_WEIGHT: Weight = Weight::from_parts(
+	WEIGHT_REF_TIME_PER_SECOND.saturating_mul(2),
+	u64::MAX
+);
 
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 2400;
@@ -431,8 +437,7 @@ fn code_using_trie() -> u64 {
 	let pairs = [
 		(b"0103000000000000000464".to_vec(), b"0400000000".to_vec()),
 		(b"0103000000000000000469".to_vec(), b"0401000000".to_vec()),
-	]
-	.to_vec();
+	].to_vec();
 
 	let mut mdb = PrefixedMemoryDB::default();
 	let mut root = sp_std::default::Default::default();
@@ -440,7 +445,7 @@ fn code_using_trie() -> u64 {
 		let mut t = TrieDBMutBuilderV1::<Hashing>::new(&mut mdb, &mut root).build();
 		for (key, value) in &pairs {
 			if t.insert(key, value).is_err() {
-				return 101
+				return 101;
 			}
 		}
 	}
@@ -623,10 +628,12 @@ impl_runtime_apis! {
 			SubstrateTest::authorities().into_iter().map(|auth| AuraId::from(auth)).collect()
 		}
 
-		fn emit_ids_of_clusters_without_group_keys() -> Option<u64> {
-			// todo!("add proper impl");
-			let a: u64 = 5;
-			Some(a)
+		fn emit_ids_of_clusters_without_group_keys() -> Option<Vec<u64>>{
+			todo!()
+		}
+
+		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerId>{
+			todo!()
 		}
 	}
 
@@ -811,8 +818,7 @@ fn test_witness(proof: StorageProof, root: crate::Hash) {
 		&mut overlay,
 		&mut cache,
 		&backend,
-		#[cfg(feature = "std")]
-		None,
+		#[cfg(feature = "std")] None
 	);
 	assert!(ext.storage(b"value3").is_some());
 	assert!(ext.storage_root(Default::default()).as_slice() == &root[..]);
@@ -830,15 +836,16 @@ pub mod storage_key_generator {
 	use sp_keyring::AccountKeyring;
 
 	/// Generate hex string without prefix
-	pub(super) fn hex<T>(x: T) -> String
-	where
-		T: array_bytes::Hex,
-	{
+	pub(super) fn hex<T>(x: T) -> String where T: array_bytes::Hex {
 		x.hex(Default::default())
 	}
 
 	fn concat_hashes(input: &Vec<&[u8]>) -> String {
-		input.iter().map(|s| sp_core::hashing::twox_128(s)).map(hex).collect()
+		input
+			.iter()
+			.map(|s| sp_core::hashing::twox_128(s))
+			.map(hex)
+			.collect()
 	}
 
 	fn twox_64_concat(x: &[u8]) -> Vec<u8> {
@@ -868,7 +875,7 @@ pub mod storage_key_generator {
 			vec![b"System", b"ParentHash"],
 			vec![b"System", b":__STORAGE_VERSION__:"],
 			vec![b"System", b"UpgradedToTripleRefCount"],
-			vec![b"System", b"UpgradedToU32RefCount"],
+			vec![b"System", b"UpgradedToU32RefCount"]
 		];
 
 		let mut expected_keys = keys.iter().map(concat_hashes).collect::<Vec<String>>();
@@ -878,13 +885,16 @@ pub mod storage_key_generator {
 		let balances_map_keys = (0..16_usize)
 			.into_iter()
 			.map(|i| AccountKeyring::numeric(i).public().to_vec())
-			.chain(vec![
-				AccountKeyring::Alice.public().to_vec(),
-				AccountKeyring::Bob.public().to_vec(),
-				AccountKeyring::Charlie.public().to_vec(),
-			])
+			.chain(
+				vec![
+					AccountKeyring::Alice.public().to_vec(),
+					AccountKeyring::Bob.public().to_vec(),
+					AccountKeyring::Charlie.public().to_vec()
+				]
+			)
 			.map(|pubkey| {
-				sp_core::hashing::blake2_128(&pubkey)
+				sp_core::hashing
+					::blake2_128(&pubkey)
 					.iter()
 					.chain(pubkey.iter())
 					.cloned()
@@ -899,9 +909,8 @@ pub mod storage_key_generator {
 		expected_keys.push(
 			[
 				concat_hashes(&vec![b"System", b"BlockHash"]),
-				hex(0u64.using_encoded(twox_64_concat)),
-			]
-			.concat(),
+				hex((0u64).using_encoded(twox_64_concat)),
+			].concat()
 		);
 
 		expected_keys.sort();
@@ -989,7 +998,7 @@ pub mod storage_key_generator {
 			// Balances|:__STORAGE_VERSION__:
 			"c2261276cc9d1f8598ea4b6a74b15c2f4e7b9012096b41c4eb3aaf947f6ea429",
 			// Balances|TotalIssuance
-			"c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80",
+			"c2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80"
 		];
 
 		if custom_heap_pages {
@@ -1004,7 +1013,7 @@ pub mod storage_key_generator {
 	fn expected_keys_vec_are_matching() {
 		assert_eq!(
 			storage_key_generator::get_expected_storage_hashed_keys(false),
-			storage_key_generator::generate_expected_storage_hashed_keys(false),
+			storage_key_generator::generate_expected_storage_hashed_keys(false)
 		);
 	}
 }
@@ -1015,16 +1024,19 @@ mod tests {
 	use codec::Encode;
 	use frame_support::dispatch::DispatchInfo;
 	use sc_block_builder::BlockBuilderProvider;
-	use sp_api::{ApiExt, ProvideRuntimeApi};
+	use sp_api::{ ApiExt, ProvideRuntimeApi };
 	use sp_consensus::BlockOrigin;
-	use sp_core::{storage::well_known_keys::HEAP_PAGES, traits::CallContext};
+	use sp_core::{ storage::well_known_keys::HEAP_PAGES, traits::CallContext };
 	use sp_keyring::AccountKeyring;
 	use sp_runtime::{
-		traits::{Hash as _, SignedExtension},
-		transaction_validity::{InvalidTransaction, ValidTransaction},
+		traits::{ Hash as _, SignedExtension },
+		transaction_validity::{ InvalidTransaction, ValidTransaction },
 	};
 	use substrate_test_runtime_client::{
-		prelude::*, runtime::TestAPI, DefaultTestClientBuilderExt, TestClientBuilder,
+		prelude::*,
+		runtime::TestAPI,
+		DefaultTestClientBuilderExt,
+		TestClientBuilder,
 	};
 
 	#[test]
@@ -1047,7 +1059,7 @@ mod tests {
 		// ~2048k of heap memory.
 		let (new_at_hash, block) = {
 			let mut builder = client.new_block(Default::default()).unwrap();
-			builder.push_storage_change(HEAP_PAGES.to_vec(), Some(32u64.encode())).unwrap();
+			builder.push_storage_change(HEAP_PAGES.to_vec(), Some((32u64).encode())).unwrap();
 			let block = builder.build().unwrap().block;
 			let hash = block.header.hash();
 			(hash, block)
@@ -1073,19 +1085,21 @@ mod tests {
 		let mut root = crate::Hash::default();
 		let mut mdb = sp_trie::MemoryDB::<crate::Hashing>::default();
 		{
-			let mut trie =
-				sp_trie::trie_types::TrieDBMutBuilderV1::new(&mut mdb, &mut root).build();
+			let mut trie = sp_trie::trie_types::TrieDBMutBuilderV1
+				::new(&mut mdb, &mut root)
+				.build();
 			trie.insert(b"value3", &[142]).expect("insert failed");
 			trie.insert(b"value4", &[124]).expect("insert failed");
-		};
+		}
 		(mdb, root)
 	}
 
 	#[test]
 	fn witness_backend_works() {
 		let (db, root) = witness_backend();
-		let backend =
-			sp_state_machine::TrieBackendBuilder::<_, crate::Hashing>::new(db, root).build();
+		let backend = sp_state_machine::TrieBackendBuilder::<_, crate::Hashing>
+			::new(db, root)
+			.build();
 		let proof = sp_state_machine::prove_read(backend, vec![b"value3"]).unwrap();
 		let client = TestClientBuilder::new().build();
 		let runtime_api = client.runtime_api();
@@ -1095,22 +1109,23 @@ mod tests {
 	}
 
 	pub fn new_test_ext() -> sp_io::TestExternalities {
-		genesismap::GenesisStorageBuilder::new(
-			vec![AccountKeyring::One.public().into(), AccountKeyring::Two.public().into()],
-			vec![AccountKeyring::One.into(), AccountKeyring::Two.into()],
-			1000 * currency::DOLLARS,
-		)
-		.build()
-		.into()
+		genesismap::GenesisStorageBuilder
+			::new(
+				vec![AccountKeyring::One.public().into(), AccountKeyring::Two.public().into()],
+				vec![AccountKeyring::One.into(), AccountKeyring::Two.into()],
+				1000 * currency::DOLLARS
+			)
+			.build()
+			.into()
 	}
 
 	#[test]
 	fn validate_storage_keys() {
 		assert_eq!(
-			genesismap::GenesisStorageBuilder::default()
+			genesismap::GenesisStorageBuilder
+				::default()
 				.build()
-				.top
-				.keys()
+				.top.keys()
 				.cloned()
 				.map(storage_key_generator::hex)
 				.collect::<Vec<_>>(),
@@ -1125,7 +1140,7 @@ mod tests {
 			let failing_calls = vec![
 				substrate_test_pallet::Call::bench_call { transfer: Default::default() },
 				substrate_test_pallet::Call::include_data { data: vec![] },
-				substrate_test_pallet::Call::fill_block { ratio: Perbill::from_percent(50) },
+				substrate_test_pallet::Call::fill_block { ratio: Perbill::from_percent(50) }
 			];
 			let succeeding_calls = vec![
 				substrate_test_pallet::Call::deposit_log_digest_item {
@@ -1133,16 +1148,16 @@ mod tests {
 				},
 				substrate_test_pallet::Call::storage_change { key: vec![], value: None },
 				substrate_test_pallet::Call::read { count: 0 },
-				substrate_test_pallet::Call::read_and_panic { count: 0 },
+				substrate_test_pallet::Call::read_and_panic { count: 0 }
 			];
 
 			for call in failing_calls {
 				assert_eq!(
 					<SubstrateTest as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(
 						TransactionSource::External,
-						&call,
+						&call
 					),
-					InvalidTransaction::Call.into(),
+					InvalidTransaction::Call.into()
 				);
 			}
 
@@ -1150,7 +1165,7 @@ mod tests {
 				assert_eq!(
 					<SubstrateTest as sp_runtime::traits::ValidateUnsigned>::validate_unsigned(
 						TransactionSource::External,
-						&call,
+						&call
 					),
 					Ok(ValidTransaction {
 						provides: vec![BlakeTwo256::hash_of(&call).encode()],
@@ -1169,28 +1184,26 @@ mod tests {
 			let info = DispatchInfo::default();
 			let len = 0_usize;
 			assert_eq!(
-				CheckSubstrateCall {}
+				(CheckSubstrateCall {})
 					.validate(
 						&x,
 						&ExtrinsicBuilder::new_call_with_priority(16).build().function,
 						&info,
 						len
 					)
-					.unwrap()
-					.priority,
+					.unwrap().priority,
 				16
 			);
 
 			assert_eq!(
-				CheckSubstrateCall {}
+				(CheckSubstrateCall {})
 					.validate(
 						&x,
 						&ExtrinsicBuilder::new_call_do_not_propagate().build().function,
 						&info,
 						len
 					)
-					.unwrap()
-					.propagate,
+					.unwrap().propagate,
 				false
 			);
 		})
