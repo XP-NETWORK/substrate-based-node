@@ -19,7 +19,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-use codec::{Codec, Decode, Encode};
+use codec::{ Codec, Decode, Encode };
 use sp_runtime::ConsensusEngineId;
 use sp_std::vec::Vec;
 
@@ -30,7 +30,7 @@ pub mod inherents;
 
 pub mod sr25519 {
 	mod app_sr25519 {
-		use sp_application_crypto::{app_crypto, key_types::AURA, sr25519};
+		use sp_application_crypto::{ app_crypto, key_types::AURA, sr25519 };
 		app_crypto!(sr25519, AURA);
 	}
 
@@ -48,7 +48,7 @@ pub mod sr25519 {
 
 pub mod ed25519 {
 	mod app_ed25519 {
-		use sp_application_crypto::{app_crypto, ed25519, key_types::AURA};
+		use sp_application_crypto::{ app_crypto, ed25519, key_types::AURA };
 		app_crypto!(ed25519, AURA);
 	}
 
@@ -64,7 +64,7 @@ pub mod ed25519 {
 	pub type AuthorityId = app_ed25519::Public;
 }
 
-pub use sp_consensus_slots::{Slot, SlotDuration};
+pub use sp_consensus_slots::{ Slot, SlotDuration };
 
 /// The `ConsensusEngineId` of AuRa.
 pub const AURA_ENGINE_ID: ConsensusEngineId = [b'a', b'u', b'r', b'a'];
@@ -84,6 +84,7 @@ pub enum ConsensusLog<AuthorityId: Codec> {
 }
 
 sp_api::decl_runtime_apis! {
+
 	/// API necessary for block authorship with aura.
 	pub trait AuraApi<AuthorityId: Codec> {
 		/// Returns the slot duration for Aura.
@@ -96,6 +97,6 @@ sp_api::decl_runtime_apis! {
 
 		fn emit_ids_of_clusters_without_group_keys() -> Option<Vec<u64>>;
 
-		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerId>;
+		fn get_validators_by_cluster_id(cluster_id: u64) -> Vec<OpaquePeerId>;
 	}
 }

@@ -34,12 +34,12 @@ pub fn notification_worker<'a, TBl>(
 				.unwrap()
 				.into();
 
-			let key = KademliaKey::new(&Code::Sha2_256.digest(key.as_ref()).digest());
-			// let key = "apple".as_bytes().to_vec();
+			// let key = KademliaKey::new(&Code::Sha2_256.digest(key.as_ref()).digest());
+			let key = "apple".as_bytes().to_vec();
 
 			loop {
 				network_to_put_value
-					.put_value(key.clone(), "this_is_me".as_bytes().to_vec());
+					.put_value(key.clone().into(), "this_is_me".as_bytes().to_vec());
 				println!("AURA - VALUE PUT");
 				thread::sleep(Duration::from_secs(10));
 			}
@@ -47,6 +47,7 @@ pub fn notification_worker<'a, TBl>(
 
 	let mut stream = network.event_stream("aura_notification_worker");
 
+	let _res = network.get_value(&key2.into());
 	task_manager
 		.spawn_handle()
 		.spawn_blocking("AuraNotificationWorker", None, async move {
@@ -56,5 +57,4 @@ pub fn notification_worker<'a, TBl>(
 			}
 		});
 
-	let _ = network.get_value(&key2.into());
 }
