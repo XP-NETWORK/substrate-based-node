@@ -1,28 +1,31 @@
 /// Module contains functions related to frost
 pub mod frost {
-	use std::{sync::Arc, thread, time::Duration};
+	use std::{ sync::Arc, thread, time::Duration };
 
 	use futures::StreamExt;
-	use sc_service::{Configuration, TaskManager};
-	use subxt::{OnlineClient, PolkadotConfig};
+	use sc_service::{ Configuration, TaskManager };
+	use subxt::{ OnlineClient, PolkadotConfig };
 
-	use std::{fmt::Debug, hash::Hash};
+	use std::{ fmt::Debug, hash::Hash };
 
-	use codec::{Decode, Encode};
-	use sc_client_api::{backend::AuxStore, BlockOf};
+	use codec::{ Decode, Encode };
+	use sc_client_api::{ backend::AuxStore, BlockOf };
 	use sp_api::ProvideRuntimeApi;
 	use sp_application_crypto::AppPublic;
 	use sp_blockchain::HeaderBackend;
 	use sp_core::crypto::Pair;
-	use sp_runtime::traits::{Block as BlockT, Member};
+	use sp_runtime::traits::{ Block as BlockT, Member };
 
-	pub use crate::standalone::{find_pre_digest, slot_duration};
+	pub use crate::standalone::{ find_pre_digest, slot_duration };
 	pub use sc_consensus_slots::SlotProportion;
 	pub use sp_consensus::SyncOracle;
 	pub use sp_consensus_aura::{
 		digests::CompatibleDigestItem,
-		inherents::{InherentDataProvider, InherentType as AuraInherent, INHERENT_IDENTIFIER},
-		AuraApi, ConsensusLog, SlotDuration, AURA_ENGINE_ID,
+		inherents::{ InherentDataProvider, InherentType as AuraInherent, INHERENT_IDENTIFIER },
+		AuraApi,
+		ConsensusLog,
+		SlotDuration,
+		AURA_ENGINE_ID,
 	};
 	/// The error enum for Frost Worker
 	#[derive(Debug)]
@@ -48,68 +51,64 @@ pub mod frost {
 	pub fn start_frost_worker<'a, P, B, C>(
 		config: &'a Configuration,
 		task_manager: &'a mut TaskManager,
-		client: Arc<C>,
-	) -> Result<(), FrostWorkerError>
-	where
-		P: Pair + Send + Sync,
-		P::Public: AppPublic + Hash + Member + Encode + Decode,
-		P::Signature: TryFrom<Vec<u8>> + Hash + Member + Encode + Decode,
-		B: BlockT,
-		C: ProvideRuntimeApi<B> + BlockOf + AuxStore + HeaderBackend<B> + 'static,
-		C::Api: AuraApi<B, AuthorityId<P>>,
+		client: Arc<C>
+	)
+		-> Result<(), FrostWorkerError>
+		where
+			P: Pair + Send + Sync,
+			P::Public: AppPublic + Hash + Member + Encode + Decode,
+			P::Signature: TryFrom<Vec<u8>> + Hash + Member + Encode + Decode,
+			B: BlockT,
+			C: ProvideRuntimeApi<B> + BlockOf + AuxStore + HeaderBackend<B> + 'static,
+			C::Api: AuraApi<B, AuthorityId<P>>
 	{
 		log::warn!("================================================");
 		log::warn!("warn log start_frost_worker");
 
 		let keystore_path = config.keystore.path();
 		let chain_type = config.chain_spec.chain_type();
-
 		log::warn!("keystore path {:#?}", keystore_path);
 		log::warn!("chain type {:#?}", chain_type);
 
-		task_manager
-			.spawn_handle()
-			.spawn_blocking("FrostWorkerEvents", None, async move {
-				log::warn!("Inside first task");
-				// We listen to the event that is emitted by the call that is called below
-				// The emitted data if successfull will contain the cluster ids for which there
-				// is no group id and the length is 11 (i.e cluster is complete)
-				let res = listen_to_event().await;
+		log::info!("rpc {:#?}", config.rpc_addr);
+		// log::info!("network {:#?}", config.networ);
+		task_manager.spawn_handle().spawn_blocking("FrostWorkerEvents", None, async move {
+			log::warn!("Inside first task");
+			// We listen to the event that is emitted by the call that is called below
+			// The emitted data if successfull will contain the cluster ids for which there
+			// is no group id and the length is 11 (i.e cluster is complete)
+			let res = listen_to_event().await;
 
-				match res {
-					Ok(v) => v,
-					Err(e) => {
-						log::warn!("FAILED IN LISTEN TO EVENT WITH ERROR {:#?}", e)
-					},
-				};
-			});
+			match res {
+				Ok(v) => v,
+				Err(e) => { log::warn!("FAILED IN LISTEN TO EVENT WITH ERROR {:#?}", e) }
+			}
+		});
 
 		log::warn!("between tasks");
 
-		task_manager
-			.spawn_handle()
-			.spawn_blocking("FrostWorkerEmitter", None, async move {
-				let runtime_api = client.runtime_api();
-				log::warn!("Inside second task");
+		task_manager.spawn_handle().spawn_blocking("FrostWorkerEmitter", None, async move {
+			let runtime_api = client.runtime_api();
+			log::warn!("Inside second task");
 
-				loop {
-					thread::sleep(Duration::from_secs(30));
+			loop {
+				thread::sleep(Duration::from_secs(30));
 
-					let best_hash = client.info().best_hash;
-					let res = runtime_api.emit_ids_of_clusters_without_group_keys(best_hash);
+				let best_hash = client.info().best_hash;
+				let res = runtime_api.emit_ids_of_clusters_without_group_keys(best_hash);
 
-					match res {
-						Ok(v) => {
-							log::warn!("emit_ids_of_clusters_without_group_keys VALUE {:#?}", &v);
-							v
-						},
-						Err(e) => {
-							log::warn!("emit_ids_of_clusters_without_group_keys ERROR {:#?}", e);
-							continue;
-						},
-					};
+				match res {
+					Ok(v) => {
+						log::warn!("emit_ids_of_clusters_without_group_keys VALUE {:#?}", &v);
+						v;
+					}
+					Err(e) => {
+						log::warn!("emit_ids_of_clusters_without_group_keys ERROR {:#?}", e);
+						continue;
+					}
 				}
-			});
+			}
+		});
 
 		log::warn!("================================================");
 		Ok(())
@@ -120,13 +119,13 @@ pub mod frost {
 
 		thread::sleep(Duration::from_secs(20));
 
-		let api = OnlineClient::<PolkadotConfig>::new().await;
+		let api = OnlineClient::<PolkadotConfig>::from_url("ws://127.0.0.1:9934").await;
 		let api = match api {
 			Ok(v) => v,
 			Err(e) => {
 				log::warn!("FAILED TO CREATE CLIENT WITH ERROR {:#?}", e);
 				return Err(e);
-			},
+			}
 		};
 		Ok(api)
 	}
@@ -138,8 +137,7 @@ pub mod frost {
 
 		let mut blocks = api
 			.blocks()
-			.subscribe_finalized()
-			.await
+			.subscribe_finalized().await
 			.or(Err(FrostWorkerError::FailedToSubscribeToBlocks))?;
 
 		// Ignore errors and move to the next iteration
@@ -148,14 +146,18 @@ pub mod frost {
 		while let Some(block) = blocks.next().await {
 			let block = match block {
 				Ok(v) => v,
-				Err(_) => continue,
+				Err(_) => {
+					continue;
+				}
 			};
 
 			let events = block.events().await;
 
 			let events = match events {
 				Ok(v) => v,
-				Err(_) => continue,
+				Err(_) => {
+					continue;
+				}
 			};
 
 			let decoded_event =
@@ -163,7 +165,9 @@ pub mod frost {
 
 			let decoded_event = match decoded_event {
 				Ok(v) => v,
-				Err(_) => continue,
+				Err(_) => {
+					continue;
+				}
 			};
 
 			// Start the key generation process

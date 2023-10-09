@@ -1,16 +1,16 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
 use futures::FutureExt;
-use node_template_runtime::{self, opaque::Block, RuntimeApi};
-use sc_client_api::{Backend, BlockBackend};
-use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
+use node_template_runtime::{ self, opaque::Block, RuntimeApi };
+use sc_client_api::{ Backend, BlockBackend };
+use sc_consensus_aura::{ ImportQueueParams, SlotProportion, StartAuraParams };
 use sc_consensus_grandpa::SharedVoterState;
 pub use sc_executor::NativeElseWasmExecutor;
-use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncParams};
-use sc_telemetry::{Telemetry, TelemetryWorker};
+use sc_service::{ error::Error as ServiceError, Configuration, TaskManager, WarpSyncParams };
+use sc_telemetry::{ Telemetry, TelemetryWorker };
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use std::{sync::Arc, time::Duration};
+use std::{ sync::Arc, time::Duration };
 
 // Our native executor instance.
 pub struct ExecutorDispatch;
@@ -32,14 +32,17 @@ impl sc_executor::NativeExecutionDispatch for ExecutorDispatch {
 	}
 }
 
-pub(crate) type FullClient =
-	sc_service::TFullClient<Block, RuntimeApi, NativeElseWasmExecutor<ExecutorDispatch>>;
+pub(crate) type FullClient = sc_service::TFullClient<
+	Block,
+	RuntimeApi,
+	NativeElseWasmExecutor<ExecutorDispatch>
+>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 #[allow(clippy::type_complexity)]
 pub fn new_partial(
-	config: &Configuration,
+	config: &Configuration
 ) -> Result<
 	sc_service::PartialComponents<
 		FullClient,
@@ -52,32 +55,36 @@ pub fn new_partial(
 				FullBackend,
 				Block,
 				FullClient,
-				FullSelectChain,
+				FullSelectChain
 			>,
 			sc_consensus_grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
 			Option<Telemetry>,
-		),
+		)
 	>,
-	ServiceError,
+	ServiceError
 > {
-	let telemetry = config
-		.telemetry_endpoints
+	let telemetry = config.telemetry_endpoints
 		.clone()
 		.filter(|x| !x.is_empty())
-		.map(|endpoints| -> Result<_, sc_telemetry::Error> {
-			let worker = TelemetryWorker::new(16)?;
-			let telemetry = worker.handle().new_telemetry(endpoints);
-			Ok((worker, telemetry))
-		})
+		.map(
+			|endpoints| -> Result<_, sc_telemetry::Error> {
+				let worker = TelemetryWorker::new(16)?;
+				let telemetry = worker.handle().new_telemetry(endpoints);
+				Ok((worker, telemetry))
+			}
+		)
 		.transpose()?;
 
 	let executor = sc_service::new_native_or_wasm_executor(config);
-	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, _>(
-			config,
-			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
-			executor,
-		)?;
+	let (client, backend, keystore_container, task_manager) = sc_service::new_full_parts::<
+		Block,
+		RuntimeApi,
+		_
+	>(
+		config,
+		telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+		executor
+	)?;
 	let client = Arc::new(client);
 
 	let telemetry = telemetry.map(|(worker, telemetry)| {
@@ -92,20 +99,20 @@ pub fn new_partial(
 		config.role.is_authority().into(),
 		config.prometheus_registry(),
 		task_manager.spawn_essential_handle(),
-		client.clone(),
+		client.clone()
 	);
 
 	let (grandpa_block_import, grandpa_link) = sc_consensus_grandpa::block_import(
 		client.clone(),
 		&client,
 		select_chain.clone(),
-		telemetry.as_ref().map(|x| x.handle()),
+		telemetry.as_ref().map(|x| x.handle())
 	)?;
 
 	let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 
-	let import_queue =
-		sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(ImportQueueParams {
+	let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _>(
+		ImportQueueParams {
 			block_import: grandpa_block_import.clone(),
 			justification_import: Some(Box::new(grandpa_block_import.clone())),
 			client: client.clone(),
@@ -115,7 +122,7 @@ pub fn new_partial(
 				let slot =
 					sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 						*timestamp,
-						slot_duration,
+						slot_duration
 					);
 
 				Ok((slot, timestamp))
@@ -125,7 +132,8 @@ pub fn new_partial(
 			check_for_equivocation: Default::default(),
 			telemetry: telemetry.as_ref().map(|x| x.handle()),
 			compatibility_mode: Default::default(),
-		})?;
+		}
+	)?;
 
 	Ok(sc_service::PartialComponents {
 		client,
@@ -154,19 +162,32 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 	let mut net_config = sc_network::config::FullNetworkConfiguration::new(&config.network);
 
+	net_config.network_config.allow_non_globals_in_dht = true;
+	net_config.network_config.enable_dht_random_walk = true;
+
 	let grandpa_protocol_name = sc_consensus_grandpa::protocol_standard_name(
 		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
-		&config.chain_spec,
+		&config.chain_spec
 	);
-	net_config.add_notification_protocol(sc_consensus_grandpa::grandpa_peers_set_config(
-		grandpa_protocol_name.clone(),
-	));
+	net_config.add_notification_protocol(
+		sc_consensus_grandpa::grandpa_peers_set_config(grandpa_protocol_name.clone())
+	);
 
-	let warp_sync = Arc::new(sc_consensus_grandpa::warp_proof::NetworkProvider::new(
-		backend.clone(),
-		grandpa_link.shared_authority_set().clone(),
-		Vec::default(),
-	));
+	let aura_protocol_name = sc_consensus_aura::standard_name(
+		&client.block_hash(0).ok().flatten().expect("Genesis block exists; qed"),
+		&config.chain_spec
+	);
+	net_config.add_notification_protocol(
+		sc_consensus_aura::aura_peer_notification_config(aura_protocol_name.clone())
+	);
+
+	let warp_sync = Arc::new(
+		sc_consensus_grandpa::warp_proof::NetworkProvider::new(
+			backend.clone(),
+			grandpa_link.shared_authority_set().clone(),
+			Vec::default()
+		)
+	);
 
 	let (network, system_rpc_tx, tx_handler_controller, network_starter, sync_service) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
@@ -184,20 +205,21 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		task_manager.spawn_handle().spawn(
 			"offchain-workers-runner",
 			"offchain-worker",
-			sc_offchain::OffchainWorkers::new(sc_offchain::OffchainWorkerOptions {
-				runtime_api_provider: client.clone(),
-				is_validator: config.role.is_authority(),
-				keystore: Some(keystore_container.keystore()),
-				offchain_db: backend.offchain_storage(),
-				transaction_pool: Some(OffchainTransactionPoolFactory::new(
-					transaction_pool.clone(),
-				)),
-				network_provider: network.clone(),
-				enable_http_requests: true,
-				custom_extensions: |_| vec![],
-			})
-			.run(client.clone(), task_manager.spawn_handle())
-			.boxed(),
+			sc_offchain::OffchainWorkers
+				::new(sc_offchain::OffchainWorkerOptions {
+					runtime_api_provider: client.clone(),
+					is_validator: config.role.is_authority(),
+					keystore: Some(keystore_container.keystore()),
+					offchain_db: backend.offchain_storage(),
+					transaction_pool: Some(
+						OffchainTransactionPoolFactory::new(transaction_pool.clone())
+					),
+					network_provider: network.clone(),
+					enable_http_requests: true,
+					custom_extensions: |_| vec![],
+				})
+				.run(client.clone(), task_manager.spawn_handle())
+				.boxed()
 		);
 	}
 
@@ -213,8 +235,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 		let pool = transaction_pool.clone();
 
 		Box::new(move |deny_unsafe, _| {
-			let deps =
-				crate::rpc::FullDeps { client: client.clone(), pool: pool.clone(), deny_unsafe };
+			let deps = crate::rpc::FullDeps {
+				client: client.clone(),
+				pool: pool.clone(),
+				deny_unsafe,
+			};
 			crate::rpc::create_full(deps).map_err(Into::into)
 		})
 	};
@@ -225,7 +250,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 			client.clone(),
 			transaction_pool.clone(),
 			prometheus_registry.as_ref(),
-			telemetry.as_ref().map(|x| x.handle()),
+			telemetry.as_ref().map(|x| x.handle())
 		);
 
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
@@ -245,7 +270,7 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 					let slot =
 						sp_consensus_aura::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
 							*timestamp,
-							slot_duration,
+							slot_duration
 						);
 
 					Ok((slot, timestamp))
@@ -260,14 +285,12 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 				telemetry: telemetry.as_ref().map(|x| x.handle()),
 				compatibility_mode: Default::default(),
 				network: network.clone(),
-			},
+			}
 		)?;
 
 		// the AURA authoring task is considered essential, i.e. if it
 		// fails we take down the service with it.
-		task_manager
-			.spawn_essential_handle()
-			.spawn_blocking("aura", Some("block-authoring"), aura);
+		task_manager.spawn_essential_handle().spawn_blocking("aura", Some("block-authoring"), aura);
 	}
 
 	let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
@@ -322,11 +345,13 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 		// the GRANDPA voter task is considered infallible, i.e.
 		// if it fails we take down the service with it.
-		task_manager.spawn_essential_handle().spawn_blocking(
-			"grandpa-voter",
-			None,
-			sc_consensus_grandpa::run_grandpa_voter(grandpa_config)?,
-		);
+		task_manager
+			.spawn_essential_handle()
+			.spawn_blocking(
+				"grandpa-voter",
+				None,
+				sc_consensus_grandpa::run_grandpa_voter(grandpa_config)?
+			);
 	}
 
 	network_starter.start_network();
