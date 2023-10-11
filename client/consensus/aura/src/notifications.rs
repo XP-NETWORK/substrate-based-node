@@ -31,6 +31,7 @@ impl<'a> ValidatorData<'a> {
 	}
 }
 
+
 const FROST_THRESHOLD: u8 = 7;
 const FROST_TOTAL_VALIDATORS: u8 = 11;
 
