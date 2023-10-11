@@ -44,9 +44,10 @@ tokio = { version = "1.15.0", features = ["full"] }
 secp256k1 = "0.27.0"
 futures = "0.3.28"
 bincode = "1.3.3"
-
+generic-array = "0.14.7"
+sha3 = { version = "0.10", default-features = false }
 serde = { version = "1.0.188", features = ["derive"] }
-distributed-frost = {version = "0.2.8", git = "https://github.com/XP-NETWORK/distributed-frost", branch = "develop"}
+distributed-frost = {version = "0.2.9", git = "https://github.com/XP-NETWORK/distributed-frost", branch = "develop"}
 
 [dev-dependencies]
 parking_lot = "0.12.1"

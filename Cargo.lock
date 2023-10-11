@@ -2382,8 +2382,8 @@ checksum = "86e3bdc80eee6e16b2b6b0f87fbc98c04bee3455e35174c0de1a125d0688c632"
 
 [[package]]
 name = "distributed-frost"
-version = "0.2.8"
-source = "git+https://github.com/XP-NETWORK/distributed-frost?branch=develop#6a4909cf43bfcea7277eb9910da5b2be12d10752"
+version = "0.2.9"
+source = "git+https://github.com/XP-NETWORK/distributed-frost?branch=develop#abe8ff9ff05dc2a60d94869741ba8d7a0940b209"
 dependencies = [
  "bincode",
  "generic-array 0.14.7",
@@ -9593,6 +9593,7 @@ dependencies = [
  "bincode",
  "distributed-frost",
  "futures",
+ "generic-array 0.14.7",
  "log",
  "parity-scale-codec",
  "parking_lot 0.12.1",
@@ -9608,6 +9609,7 @@ dependencies = [
  "sc-telemetry",
  "secp256k1 0.27.0",
  "serde",
+ "sha3",
  "sp-api",
  "sp-application-crypto",
  "sp-block-builder",
@@ -13755,7 +13757,7 @@ checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
  "cfg-if",
  "digest 0.10.7",
- "rand 0.8.5",
+ "rand 0.7.3",
  "static_assertions",
 ]
 

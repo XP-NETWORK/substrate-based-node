@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+use distributed_frost::{ FrostInfo, create_participant, keygen::{ Participant, Coefficients } };
 use futures::StreamExt;
 use sc_network::{ NetworkService, KademliaKey };
 use sc_network::{ NetworkDHTProvider, NetworkEventStream };
@@ -15,6 +16,24 @@ use sp_runtime::traits::Block as BlockT;
 use serde::{ Serialize, Deserialize };
 use bincode;
 
+use generic_array::{ GenericArray, typenum::B0, typenum::B1, typenum::UTerm };
+/// Type Alias for public_bytes type
+pub type PublicBytes = GenericArray<
+	u8,
+	sha3::digest::typenum::UInt<
+		sha3::digest::typenum::UInt<
+			sha3::digest::typenum::UInt<
+				sha3::digest::typenum::UInt<
+					sha3::digest::typenum::UInt<sha3::digest::typenum::UInt<UTerm, B1>, B0>,
+					B0
+				>,
+				B0
+			>,
+			B0
+		>,
+		B1
+	>
+>;
 #[derive(Serialize, Deserialize, Debug)]
 struct ValidatorData<'a> {
 	id: u8,
@@ -31,7 +50,6 @@ impl<'a> ValidatorData<'a> {
 	}
 }
 
-
 const FROST_THRESHOLD: u8 = 7;
 const FROST_TOTAL_VALIDATORS: u8 = 11;
 
@@ -45,6 +63,17 @@ pub fn notification_worker<'a, TBl>(
 	let dht_key_for_put = dht_key.clone(); // Clone the key for the put operation
 	let dht_key_for_get = dht_key.clone(); // Clone the key for the get operation
 
+	let front_info = FrostInfo {
+		totalvalue: FROST_TOTAL_VALIDATORS,
+		thresholdvalue: FROST_THRESHOLD,
+	};
+
+	let (party, public_bytes, partycoeffs): (
+		Participant,
+		PublicBytes,
+		Coefficients,
+	) = create_participant(front_info, 1);
+	println!("public key, {:?}", party.public_key().unwrap());
 	// Task to periodically put the value into the DHT.
 	let network_for_put = Arc::clone(&network); // Clone for the put operation
 	task_manager.spawn_handle().spawn_blocking("AuraPutValueWorker", None, async move {
@@ -55,12 +84,8 @@ pub fn notification_worker<'a, TBl>(
 		// 	.into();
 
 		thread::sleep(Duration::from_secs(30));
-		let validator_data = ValidatorData {
-			id: 1,
-			message: "this is my message",
-		};
 		loop {
-			network_for_put.put_value(dht_key_for_put.clone(), validator_data.to_bytes().unwrap());
+			network_for_put.put_value(dht_key_for_put.clone(), public_bytes.to_vec());
 			println!("AURA - VALUE PUT");
 			thread::sleep(Duration::from_secs(10));
 		}
@@ -85,7 +110,7 @@ pub fn notification_worker<'a, TBl>(
 				sc_network::Event::Dht(sc_network::DhtEvent::ValueFound(records)) => {
 					for (found_key, value) in records {
 						if &found_key == &dht_key {
-							println!("Found value in DHT: {:?}", ValidatorData::from_bytes(&value).unwrap());
+							println!("Found value in DHT: {:?}", public_bytes.to_vec() == value);
 						}
 					}
 				}
