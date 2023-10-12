@@ -1,6 +1,6 @@
 [package]
 name = "sp-consensus-aura"
-version = "0.10.0-dev"
+version = "0.11.0-dev"
 authors = ["Parity Technologies <admin@parity.io>"]
 description = "Primitives for Aura consensus"
 edition = "2021"
