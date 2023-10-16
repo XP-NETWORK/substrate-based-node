@@ -100,6 +100,6 @@ sp_api::decl_runtime_apis! {
 		fn authorities() -> Vec<AuthorityId>;
 
 		fn emit_ids_of_clusters_without_group_keys() -> Option<Vec<u64>>;
-		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<PeerIdWrapper>;
+		fn get_validators_by_cluster_id(cluster_id: u64) -> Vec<PeerIdWrapper>;
 	}
 }

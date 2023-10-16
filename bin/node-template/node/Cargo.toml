@@ -31,7 +31,7 @@ sc-transaction-pool-api = { version = "4.0.0-dev", path = "../../../client/trans
 sc-offchain = { version = "4.0.0-dev", path = "../../../client/offchain" }
 sc-statement-store = { version = "4.0.0-dev", path = "../../../client/statement-store" }
 sc-consensus-aura = { version = "0.10.0-dev", path = "../../../client/consensus/aura" }
-sp-consensus-aura = { version = "0.10.0-dev", path = "../../../primitives/consensus/aura" }
+sp-consensus-aura = { version = "0.11.0-dev", path = "../../../primitives/consensus/aura" }
 sc-consensus = { version = "0.10.0-dev", path = "../../../client/consensus/common" }
 sc-consensus-grandpa = { version = "0.10.0-dev", path = "../../../client/consensus/grandpa" }
 sp-consensus-grandpa = { version = "4.0.0-dev", path = "../../../primitives/consensus/grandpa" }
