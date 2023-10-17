@@ -23,7 +23,7 @@ use codec::{Codec, Decode, Encode};
 use scale_info::TypeInfo;
 use sp_runtime::ConsensusEngineId;
 use sp_std::vec::Vec;
-
+use sp_core::MaxEncodedLen;
 use sp_core::OpaquePeerId;
 pub mod digests;
 pub mod inherents;
