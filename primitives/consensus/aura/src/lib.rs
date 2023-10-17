@@ -25,7 +25,6 @@ use sp_runtime::ConsensusEngineId;
 use sp_std::vec::Vec;
 
 use sp_core::OpaquePeerId;
-
 pub mod digests;
 pub mod inherents;
 
@@ -86,6 +85,12 @@ pub enum ConsensusLog<AuthorityId: Codec> {
 
 #[derive(Debug, Encode, Decode, Clone, PartialEq, TypeInfo)]
 pub struct PeerIdWrapper(OpaquePeerId);
+
+impl MaxEncodedLen for PeerIdWrapper {
+	fn max_encoded_len() -> usize {
+		100
+	}
+}
 
 sp_api::decl_runtime_apis! {
 
