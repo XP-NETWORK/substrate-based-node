@@ -84,7 +84,7 @@ pub enum ConsensusLog<AuthorityId: Codec> {
 }
 
 #[derive(Debug, Encode, Decode, Clone, PartialEq, TypeInfo)]
-pub struct PeerIdWrapper(OpaquePeerId);
+pub struct PeerIdWrapper(pub OpaquePeerId);
 
 impl MaxEncodedLen for PeerIdWrapper {
 	fn max_encoded_len() -> usize {
