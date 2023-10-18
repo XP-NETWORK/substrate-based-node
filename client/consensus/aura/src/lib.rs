@@ -251,7 +251,7 @@ where
 	let c = Arc::clone(&client);
 	let _ = start_frost_worker::<P, B, C>(config, task_manager, c);
 
-	notifications::notification_worker::<TBl>(network.clone(), task_manager);
+	notifications::notification_worker::<TBl>(network.clone(), task_manager, keystore.clone());
 
 	let worker = build_aura_worker::<P, _, _, _, _, _, _, _, _, _>(BuildAuraWorkerParams {
 		client,

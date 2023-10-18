@@ -69,7 +69,6 @@ pub mod frost {
 		let chain_type = config.chain_spec.chain_type();
 		log::warn!("keystore path {:#?}", keystore_path);
 		log::warn!("chain type {:#?}", chain_type);
-
 		log::info!("rpc {:#?}", config.rpc_addr);
 		// log::info!("network {:#?}", config.networ);
 		task_manager.spawn_handle().spawn_blocking("FrostWorkerEvents", None, async move {
