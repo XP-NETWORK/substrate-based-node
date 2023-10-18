@@ -38,6 +38,7 @@ use frame_support::{
 };
 use frame_system::{ limits::{ BlockLength, BlockWeights }, CheckNonce, CheckWeight };
 use scale_info::TypeInfo;
+use sp_consensus_aura::PeerIdWrapper;
 use sp_std::prelude::*;
 
 use sp_application_crypto::{ ecdsa, ed25519, sr25519, RuntimeAppPublic };
@@ -632,7 +633,7 @@ impl_runtime_apis! {
 			todo!()
 		}
 
-		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerId>{
+		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<PeerIdWrapper>{
 			todo!()
 		}
 	}

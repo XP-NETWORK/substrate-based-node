@@ -9601,6 +9601,7 @@ dependencies = [
  "async-trait",
  "bincode",
  "distributed-frost",
+ "frost-db",
  "futures",
  "generic-array 0.14.7",
  "log",

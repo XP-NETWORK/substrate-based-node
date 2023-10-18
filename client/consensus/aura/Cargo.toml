@@ -38,6 +38,7 @@ sp-core = { version = "21.0.0", path = "../../../primitives/core" }
 sp-inherents = { version = "4.0.0-dev", path = "../../../primitives/inherents" }
 sp-keystore = { version = "0.27.0", path = "../../../primitives/keystore" }
 sp-runtime = { version = "24.0.0", path = "../../../primitives/runtime" }
+frost-db = {version = "0.1.0" , path = "../../frost-db"}
 subxt =  { version = "0.31.0" }
 subxt-signer = { version = "0.31.0", features = ["subxt"]}
 tokio = { version = "1.15.0", features = ["full"] }

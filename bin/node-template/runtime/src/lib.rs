@@ -8,7 +8,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
 use pallet_grandpa::AuthorityId as GrandpaId;
 use sp_api::impl_runtime_apis;
-use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_consensus_aura::{sr25519::AuthorityId as AuraId, PeerIdWrapper};
 use sp_core::{ crypto::KeyTypeId, OpaqueMetadata,OpaquePeerId };
 use sp_runtime::{
 	create_runtime_str,
@@ -441,7 +441,7 @@ impl_runtime_apis! {
 			todo!();
 		}
 
-		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<OpaquePeerId>{
+		fn get_validators_by_cluster_id(cluster_id:u64) -> Vec<PeerIdWrapper>{
 			todo!();
 		}
 	}
